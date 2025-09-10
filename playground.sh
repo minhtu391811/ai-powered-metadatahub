@@ -28,7 +28,7 @@ playgroundRuntimeName="ai-powered-metadatahub"
 requiredDiskSpaceGB=25
 requiredRamGB=6
 requiredCpuCores=2
-requiredPorts=(8090 9001 3307 19000 19083 60070 15342 18080 14040 19092 9092 8080 9000 19001 6080 18081 17077)
+requiredPorts=(8090 9001 3307 19000 19083 60070 15342 18080 14040 17077 19092 9092 8080 9000 19001 18081 18888)
 dockerComposeCommand=""
 
 testDocker() {
@@ -167,7 +167,7 @@ checkPortsInUse() {
 
 pruneLegacyLogs() {
   # delete all log files except the latest 3
-  ls -tp playground-*.log | grep -v '/$' | tail -n +4 | xargs -I {} rm -- {}
+  ls -tp playground-*.log | grep -v '/$' | tail -n +2 | xargs -I {} rm -- {}
 }
 
 start() {
@@ -192,19 +192,22 @@ start() {
 
   cd ${playground_dir}
   echo "[INFO] Preparing packages..."
-  find "${playground_dir}" -type f -name "*.sh" -exec chmod +x {} \;
+  find "${playground_dir}/init" -type f -name "*.sh" -exec chmod +x {} \;
 
   ./init/spark/spark-dependency.sh
   ./init/gravitino/gravitino-dependency.sh
   ./init/flink/flink-dependency.sh
+  ./init/jupyter/jupyter-dependency.sh
 
   DATA_DIR="${playground_dir}/data"
   sudo mkdir -p "$DATA_DIR"
   sudo mkdir -p "$DATA_DIR/kafka"
   sudo mkdir -p "$DATA_DIR/gravitino"
   sudo mkdir -p "$DATA_DIR/hive"
+  sudo mkdir -p "$DATA_DIR/jupyter"
 
   sudo chown -R 1001:0 "$DATA_DIR/kafka"
+  sudo chown -R 1000:1000 "$DATA_DIR/jupyter"
 
   logSuffix=$(date +%Y%m%d%H%M%s)
   if [ "${enableRanger}" == true ]; then
@@ -215,6 +218,9 @@ start() {
   ${dockerComposeCommand} -p ${playgroundRuntimeName} logs -f >${playground_dir}/playground-${logSuffix}.log 2>&1 &
   echo "[INFO] Check log details: ${playground_dir}/playground-${logSuffix}.log"
   pruneLegacyLogs
+
+  # echo "[INFO] Initing Metalake catalog"
+  # ./init/common/init_metalake_catalog.sh
 
   echo "[INFO] Preparing kafka messages..."
   python3 "${playground_dir}/init/kafka/kafka_producer.py"

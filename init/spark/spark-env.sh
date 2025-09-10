@@ -1,1 +1,1 @@
-export HADOOP_USER_NAME=hive
+export HADOOP_USER_NAME=anonymous

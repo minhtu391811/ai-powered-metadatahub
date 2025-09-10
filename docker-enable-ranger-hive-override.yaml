@@ -19,7 +19,7 @@
 services:
   hive:
     environment:
-      - HADOOP_USER_NAME=minhtu
+      - HADOOP_USER_NAME=root
       - HIVE_RUNTIME_VERSION=hive3
       - RANGER_SERVER_URL=http://ranger:6080
       - RANGER_HIVE_REPOSITORY_NAME=hiveDev

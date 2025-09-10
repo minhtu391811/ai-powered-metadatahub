@@ -16,20 +16,21 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+
 mkdir -p /opt/spark/conf
 cp /tmp/spark/spark-defaults.conf /opt/spark/conf
 cp /tmp/spark/spark-env.sh /opt/spark/conf
 
-export SPARK_HOME=/opt/spark
-$SPARK_HOME/sbin/start-worker.sh
-
 cp /tmp/spark/packages/iceberg-spark-runtime-3.4_2.12-1.5.2.jar /opt/spark/jars/iceberg-spark-runtime-3.4_2.12-1.5.2.jar
-cp /tmp/spark/packages/paimon-spark-3.4-1.2.0.jar /opt/spark/jars/paimon-spark-3.4-1.2.0.jar
-cp /tmp/spark/packages/paimon-core-1.2.0.jar /opt/spark/jars/paimon-core-1.2.0.jar
+cp /tmp/spark/packages/paimon-spark-3.4-0.8.2.jar /opt/spark/jars/paimon-spark-3.4-0.8.2.jar
+cp /tmp/spark/packages/paimon-core-0.8.2.jar /opt/spark/jars/paimon-core-0.8.2.jar
 cp /tmp/spark/packages/${SPARK_CONNECTOR_JAR} /opt/spark/jars/${SPARK_CONNECTOR_JAR}
 cp /tmp/spark/packages/postgresql-42.2.7.jar /opt/spark/jars/postgresql-42.2.7.jar
 cp /tmp/spark/packages/mysql-connector-java-8.0.27.jar /opt/spark/jars/mysql-connector-java-8.0.27.jar
 cp /tmp/spark/packages/kyuubi-spark-authz-shaded_2.12-1.9.2.jar /opt/spark/jars/kyuubi-spark-authz-shaded_2.12-1.9.2.jar
-sh /tmp/common/init_metalake_catalog.sh
+/tmp/commom/init_metalake_catalog.sh
+
+export SPARK_HOME=/opt/spark
+$SPARK_HOME/sbin/start-master.sh --host 0.0.0.0 --port 7077 --webui-port 8080
 
 tail -f /dev/null

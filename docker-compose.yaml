@@ -27,19 +27,18 @@ services:
       - "60070:50070"
     container_name: metadatahub-hive
     environment:
-      - HADOOP_USER_NAME=hive
+      - HADOOP_USER_NAME=root
     entrypoint: /bin/bash /tmp/hive/init.sh
     volumes:
       - ./init/hive:/tmp/hive
-      - ./data/hive:/opt/hive/data
+      - ./data/hive/data:/tmp/hadoop-root/dfs/data
+      - ./data/hive/name:/tmp/hadoop-root/dfs/name
     healthcheck:
       test: ["CMD", "/tmp/check-status.sh"]
       interval: 10s
       timeout: 60s
       retries: 5
       start_period: 20s
-    mem_limit: 2g
-    cpus: 2
 
   ranger:
     image: apache/gravitino-playground:${RANGER_IMAGE_TAG}
@@ -74,7 +73,7 @@ services:
     volumes:
       - ./healthcheck:/tmp/healthcheck
       - ./init/gravitino:/tmp/gravitino
-      - ./data/gravitino:/root/gravitino/data
+      - ./data/gravitino/db:/root/gravitino/data
     healthcheck:
       test: ["CMD", "/tmp/healthcheck/gravitino-healthcheck.sh"]
       interval: 10s
@@ -97,7 +96,6 @@ services:
     entrypoint: /bin/bash /tmp/trino/init.sh
     volumes:
       - ./init/trino:/tmp/trino
-      - ./init/common:/tmp/common
       - ./healthcheck:/tmp/healthcheck
     depends_on:
       hive:
@@ -110,17 +108,15 @@ services:
       timeout: 60s
       retries: 5
       start_period: 20s
-    mem_limit: 2g
-    cpus: 1
 
   postgresql:
     image: postgres:${POSTGRESQL_IMAGE_TAG}
     container_name: metadatahub-postgresql
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DATABASE: db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DB}
     ports:
       - "15432:5432"
     volumes:
@@ -131,10 +127,10 @@ services:
     image: mysql:${MYSQL_IMAGE_TAG}
     container_name: metadatahub-mysql
     environment:
-      - MYSQL_ROOT_PASSWORD=mysql
-      - MYSQL_USER=mysql
-      - MYSQL_PASSWORD=mysql
-      - MYSQL_DATABASE=db
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
     ports:
       - "13306:3306"
     volumes:
@@ -192,7 +188,7 @@ services:
         condition: service_healthy
     entrypoint: /bin/bash /tmp/spark/init.sh
     environment:
-      - HADOOP_USER_NAME=hive
+      - HADOOP_USER_NAME=root
       - HIVE_HOST_IP=hive
       - MYSQL_HOST_IP=mysql
       - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
@@ -203,8 +199,6 @@ services:
     volumes:
       - ./init/spark:/tmp/spark
       - ./init/common:/tmp/common
-    mem_limit: 4g
-    cpus: 2
     
   flink:
     image: flink:${FLINK_IMAGE_TAG}
@@ -212,11 +206,9 @@ services:
     depends_on:
       gravitino:
         condition: service_healthy
-      hive:
-        condition: service_healthy
     entrypoint: /bin/bash /tmp/flink/init.sh
     environment:
-      - HADOOP_USER_NAME=hive
+      - HADOOP_USER_NAME=root
       - HIVE_HOST_IP=hive
       - MYSQL_HOST_IP=mysql
       - FLINK_CONNECTOR_JAR=${FLINK_CONNECTOR_JAR}
@@ -225,5 +217,30 @@ services:
       - "18081:8081"
     volumes:
       - ./init/flink:/tmp/flink
-    mem_limit: 3g
-    cpus: 2
+
+  jupyter:
+    image: jupyter/pyspark-notebook:${JUPYTER_IMAGE_TAG}
+    container_name: metadatahub-jupyter
+    ports:
+      - "18888:8888"
+    volumes:
+      - ./init/jupyter:/tmp/gravitino
+      - ./data/jupyter:/home/jovyan
+    entrypoint: /bin/bash /tmp/gravitino/init.sh
+    environment:
+      - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
+    depends_on:
+      hive:
+        condition: service_healthy
+      gravitino:
+        condition: service_healthy
+  
+  # authentication:
+  #   image: datastrato/sample-authorization-server:0.3.0
+  #   container_name: metadatahub-authentication
+  #   ports:
+  #     - "8177:8177"
+  
+volumes:
+  metastore_db:
+    driver: local

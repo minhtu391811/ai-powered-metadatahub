@@ -23,7 +23,6 @@ cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gra
 cp /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar /root/gravitino/catalogs/lakehouse-iceberg/libs
 cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/catalogs/lakehouse-paimon
 cp /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar /root/gravitino/catalogs/lakehouse-iceberg/libs
-cp /tmp/gravitino/packages/gravitino-aws-bundle-0.9.1.jar /root/gravitino/catalogs/hadoop/libs
 
 cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/iceberg-rest-server/libs
 cp /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar /root/gravitino/iceberg-rest-server/libs

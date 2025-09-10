@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "/opt/conda/envs/flink-py310/bin/python",
+    "-m",
+    "ipykernel_launcher",
+    "-f",
+    "{connection_file}"
+  ],
+  "display_name": "Python 3.10 (PyFlink 1.18.1)",
+  "language": "python",
+  "env": {
+    "FLINK_HOME": "/home/jovyan/flink-1.18.1",
+    "PATH": "/home/jovyan/flink-1.18.1/bin:${PATH}",
+    "PYTHONPATH": "/opt/conda/envs/flink-py310/bin/python3.10"
+  }
+}

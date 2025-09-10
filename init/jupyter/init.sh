@@ -1,3 +1,4 @@
+#!bin/bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -17,6 +18,17 @@
 # under the License.
 #
 
+tar -xzf /tmp/gravitino/spark/spark-3.4.2-bin-hadoop3.tgz -C /home/jovyan/
+mkdir -p /opt/conda/share/jupyter/kernels/spark-3.4.2
+cp /tmp/gravitino/spark/spark-kernel.json /opt/conda/share/jupyter/kernels/spark-3.4.2/kernel.json
+
+tar -xzf /tmp/gravitino/flink/flink-1.18.1-bin-scala_2.12.tgz -C /home/jovyan/
+mkdir -p /opt/conda/share/jupyter/kernels/flink-1.18.1
+cp /tmp/gravitino/flink/flink-kernel.json /opt/conda/share/jupyter/kernels/flink-1.18.1/kernel.json
+
+cp /tmp/gravitino/spark/spark-defaults.conf /home/jovyan/spark-3.4.2-bin-hadoop3/conf/spark-defaults.conf
+cp /tmp/gravitino/flink/flink-conf.yaml /home/jovyan/flink-1.18.1/conf/flink-conf.yaml
+
 if [ -n "$(find /home/jovyan -maxdepth 1 -name "*.ipynb" -print -quit)" ]; then
     echo "Already have .ipynb files in the directory, skip copying"
 else
@@ -28,5 +40,9 @@ else
       cp -r /tmp/gravitino/authorization/*.ipynb /home/jovyan
     fi
 fi
+
+conda create -n flink-py310 python=3.10 -y
+conda run -n flink-py310 pip install jupyter ipykernel apache-flink==1.18.1
+echo "Installed Flink environment"
 
 start-notebook.sh --NotebookApp.token=''

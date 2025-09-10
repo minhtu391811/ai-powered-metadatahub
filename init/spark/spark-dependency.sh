@@ -45,10 +45,10 @@ KYUUBI_SPARK_AUTHZ_SHADED_JAR="https://repo1.maven.org/maven2/org/apache/kyuubi/
 KYUUBI_SPARK_AUTHZ_SHADED_MD5="${KYUUBI_SPARK_AUTHZ_SHADED_JAR}.md5"
 download_and_verify "${KYUUBI_SPARK_AUTHZ_SHADED_JAR}" "${KYUUBI_SPARK_AUTHZ_SHADED_MD5}" "${spark_dir}"
 
-PAIMON_SPARK_CONNECTOR_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-spark-3.4/1.2.0/paimon-spark-3.4-1.2.0.jar"
+PAIMON_SPARK_CONNECTOR_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-spark-3.4/0.8.2/paimon-spark-3.4-0.8.2.jar"
 PAIMON_SPARK_CONNECTOR_MD5="${PAIMON_SPARK_CONNECTOR_JAR}.md5"
 download_and_verify "${PAIMON_SPARK_CONNECTOR_JAR}" "${PAIMON_SPARK_CONNECTOR_MD5}" "${spark_dir}"
 
-PAIMON_CORE_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-core/1.2.0/paimon-core-1.2.0.jar"
+PAIMON_CORE_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-core/0.8.2/paimon-core-0.8.2.jar"
 PAIMON_CORE_MD5="${PAIMON_CORE_JAR}.md5"
 download_and_verify "${PAIMON_CORE_JAR}" "${PAIMON_CORE_MD5}" "${spark_dir}"
