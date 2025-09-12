@@ -192,7 +192,9 @@ start() {
 
   cd ${playground_dir}
   echo "[INFO] Preparing packages..."
+  sudo chown -R $(whoami):$(whoami) "${playground_dir}/init"
   find "${playground_dir}/init" -type f -name "*.sh" -exec chmod +x {} \;
+  find "${playground_dir}/healthcheck" -type f -name "*.sh" -exec chmod +x {} \;
 
   ./init/spark/spark-dependency.sh
   ./init/gravitino/gravitino-dependency.sh
@@ -201,13 +203,13 @@ start() {
 
   DATA_DIR="${playground_dir}/data"
   sudo mkdir -p "$DATA_DIR"
-  sudo mkdir -p "$DATA_DIR/kafka"
-  sudo mkdir -p "$DATA_DIR/gravitino"
-  sudo mkdir -p "$DATA_DIR/hive"
-  sudo mkdir -p "$DATA_DIR/jupyter"
+  sudo mkdir -p "$DATA_DIR/gravitino/db"
+  sudo mkdir -p "$DATA_DIR/hive/name"
+  sudo mkdir -p "$DATA_DIR/hive/data"
+  sudo mkdir -p "$DATA_DIR/minio/data"
+  sudo mkdir -p "$DATA_DIR/jupyter/data"
 
-  sudo chown -R 1001:0 "$DATA_DIR/kafka"
-  sudo chown -R 1000:1000 "$DATA_DIR/jupyter"
+  sudo chown -R 1000:1000 "$DATA_DIR/jupyter/data"
 
   logSuffix=$(date +%Y%m%d%H%M%s)
   if [ "${enableRanger}" == true ]; then
@@ -218,9 +220,6 @@ start() {
   ${dockerComposeCommand} -p ${playgroundRuntimeName} logs -f >${playground_dir}/playground-${logSuffix}.log 2>&1 &
   echo "[INFO] Check log details: ${playground_dir}/playground-${logSuffix}.log"
   pruneLegacyLogs
-
-  # echo "[INFO] Initing Metalake catalog"
-  # ./init/common/init_metalake_catalog.sh
 
   echo "[INFO] Preparing kafka messages..."
   python3 "${playground_dir}/init/kafka/kafka_producer.py"

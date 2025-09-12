@@ -24,7 +24,7 @@ else
   response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
   -H "Content-Type: application/json" -d '{
     "name":"metalake_demo",
-    "comment":"comment",
+    "comment":"metalake for demo",
     "properties":{}
   }' http://gravitino:8090/api/metalakes)
   if echo "$response" | grep -q "\"code\":0"; then
@@ -45,7 +45,7 @@ else
     "name":"catalog_hive",
     "type":"RELATIONAL",
     "provider":"hive",
-    "comment":"comment",
+    "comment":"catalog for hive metastore",
     "properties":{
       "metastore.uris":"thrift://'${HIVE_HOST_IP}':9083"
     }
@@ -68,7 +68,7 @@ else
     "name":"catalog_postgres",
     "type":"RELATIONAL",
     "provider":"jdbc-postgresql",
-    "comment":"comment",
+    "comment":"catalog for postgresql",
     "properties":{
       "jdbc-url":"jdbc:postgresql://postgresql/db",
       "jdbc-user":"postgres",
@@ -95,7 +95,7 @@ else
     "name":"catalog_mysql",
     "type":"RELATIONAL",
     "provider":"jdbc-mysql",
-    "comment":"comment",
+    "comment":"catalog for mysql",
     "properties":{
       "jdbc-url":"jdbc:mysql://'${MYSQL_HOST_IP}':3306",
       "jdbc-user":"mysql",
@@ -121,11 +121,12 @@ else
     "name":"catalog_iceberg",
     "type":"RELATIONAL",
     "provider":"lakehouse-iceberg",
-    "comment":"comment",
+    "comment":"catalog for iceberg lakehouse",
     "properties":{
       "uri":"jdbc:mysql://'${MYSQL_HOST_IP}':3306/db",
       "catalog-backend":"jdbc",
       "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/iceberg/warehouse/",
+      "catalog-backend-name": "iceberg",
       "jdbc-user":"mysql",
       "jdbc-password":"mysql",
       "jdbc-driver":"com.mysql.cj.jdbc.Driver"
@@ -149,10 +150,10 @@ else
     "name":"catalog_paimon",
     "type":"RELATIONAL",
     "provider":"lakehouse-paimon",
-    "comment":"comment",
+    "comment":"catalog for paimon lakehouse",
     "properties":{
       "catalog-backend":"filesystem",
-      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/paimon/warehouse/",
+      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/hive/warehouse/",
       "catalog-backend-name":"paimon"
     }
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
@@ -160,6 +161,30 @@ else
     true # Placeholder, do nothing
   else
     echo "create catalog_paimon failed"
+    exit 1
+  fi
+fi
+
+response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catalog_hudi)
+if echo "$response" | grep -q "\"code\":0"; then
+  true
+else
+  # Create Iceberg catalog for experience Gravitino service
+  response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
+  -H "Content-Type: application/json" -d '{
+    "name":"catalog_hudi",
+    "type":"RELATIONAL",
+    "provider":"lakehouse-hudi",
+    "comment":"catalog for hudi lakehouse",
+    "properties":{
+      "uri":"thrift://'${HIVE_HOST_IP}':9083",
+      "catalog-backend":"hms"
+    } 
+  }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
+  if echo "$response" | grep -q "\"code\":0"; then
+    true # Placeholder, do nothing
+  else
+    echo "create catalog_hudi failed"
     exit 1
   fi
 fi
@@ -174,7 +199,7 @@ else
     "name":"catalog_kafka",
     "type":"MESSAGING",
     "provider":"kafka",
-    "comment":"comment",
+    "comment":"catalog for kafka",
     "properties":{
       "bootstrap.servers": "kafka:9092"
     }
@@ -187,142 +212,66 @@ else
   fi
 fi
 
-# #!/bin/bash
-# set -e
+response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catalog_iceberg_s3)
+if echo "$response" | grep -q "\"code\":0"; then
+  true
+else
+  # Create Iceberg catalog for experience Gravitino service
+  response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
+  -H "Content-Type: application/json" -d '{
+    "name":"catalog_iceberg_s3",
+    "type":"RELATIONAL",
+    "provider":"lakehouse-iceberg",
+    "comment":"catalog for iceberg lakehouse with s3",
+    "properties":{
+      "uri":"jdbc:mysql://'${MYSQL_HOST_IP}':3306/db",
+      "catalog-backend":"jdbc",
+      "warehouse":"s3://lakehouse-demo/iceberg-lakehouse/",
+      "catalog-backend-name": "iceberg_s3",
+      "jdbc-user":"mysql",
+      "jdbc-password":"mysql",
+      "jdbc-driver":"com.mysql.cj.jdbc.Driver",
+      "io-impl":"org.apache.iceberg.aws.s3.S3FileIO",
+      "s3-access-key-id":"minioadmin",
+      "s3-secret-access-key":"minioadmin",
+      "s3-endpoint":"http://minio:9000",
+      "s3-path-style-access":"true"
+    } 
+  }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
+  if echo "$response" | grep -q "\"code\":0"; then
+    true # Placeholder, do nothing
+  else
+    echo "create catalog_iceberg_s3 failed"
+    exit 1
+  fi
+fi
 
-# OAUTH_URL="http://127.0.0.1:8177/oauth2/token"
-# CLIENT_ID="test"
-# CLIENT_SECRET="test"
-# GRAVITINO_URL="http://localhost:8090"
-# METALAKE_NAME="metalake_demo"
-
-# TOKEN=$(curl -s -X POST "$OAUTH_URL" \
-#   -H "Content-Type: application/x-www-form-urlencoded" \
-#   -d "grant_type=client_credentials" \
-#   -d "client_id=$CLIENT_ID" \
-#   -d "client_secret=$CLIENT_SECRET" \
-#   | jq -r '.access_token')
-
-# if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-#   echo "Failed to get token from OAUTH"
-#   exit 1
-# fi
-
-# echo "Got access token"
-
-# ensure_metalake() {
-#   response=$(curl -s -H "Authorization: Bearer $TOKEN" "$GRAVITINO_URL/api/metalakes/$METALAKE_NAME")
-#   if echo "$response" | grep -q "\"code\":0"; then
-#     echo "Metalake $METALAKE_NAME already exists"
-#   else
-#     response=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-#       -H "Accept: application/vnd.gravitino.v1+json" \
-#       -H "Content-Type: application/json" \
-#       -d "{
-#         \"name\":\"$METALAKE_NAME\",
-#         \"comment\":\"comment\",
-#         \"properties\":{}
-#       }" "$GRAVITINO_URL/api/metalakes")
-#     if echo "$response" | grep -q "\"code\":0"; then
-#       echo "Metalake $METALAKE_NAME created successfully"
-#     else
-#       echo "Metalake $METALAKE_NAME create failed"
-#       echo "$response"
-#       exit 1
-#     fi
-#   fi
-# }
-
-# ensure_catalog() {
-#   local catalog_name=$1
-#   local payload=$2
-#   response=$(curl -s -H "Authorization: Bearer $TOKEN" "$GRAVITINO_URL/api/metalakes/$METALAKE_NAME/catalogs/$catalog_name")
-#   if echo "$response" | grep -q "\"code\":0"; then
-#     echo "Catalog $catalog_name already exists"
-#   else
-#     response=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-#       -H "Accept: application/vnd.gravitino.v1+json" \
-#       -H "Content-Type: application/json" \
-#       -d "$payload" \
-#       "$GRAVITINO_URL/api/metalakes/$METALAKE_NAME/catalogs")
-#     if echo "$response" | grep -q "\"code\":0"; then
-#       echo "Catalog $catalog_name created successfully"
-#     else
-#       echo "Catalog $catalog_name create failed"
-#       echo "$response"
-#       exit 1
-#     fi
-#   fi
-# }
-
-# ensure_metalake
-
-# ensure_catalog "catalog_hive" '{
-#   "name":"catalog_hive",
-#   "type":"RELATIONAL",
-#   "provider":"hive",
-#   "comment":"comment",
-#   "properties":{"metastore.uris":"thrift://'"${HIVE_HOST_IP}"':9083"}
-# }'
-
-# ensure_catalog "catalog_postgres" '{
-#   "name":"catalog_postgres",
-#   "type":"RELATIONAL",
-#   "provider":"jdbc-postgresql",
-#   "comment":"comment",
-#   "properties":{
-#     "jdbc-url":"jdbc:postgresql://postgresql/db",
-#     "jdbc-user":"postgres",
-#     "jdbc-password":"postgres",
-#     "jdbc-database":"db",
-#     "jdbc-driver":"org.postgresql.Driver"
-#   }
-# }'
-
-# ensure_catalog "catalog_mysql" '{
-#   "name":"catalog_mysql",
-#   "type":"RELATIONAL",
-#   "provider":"jdbc-mysql",
-#   "comment":"comment",
-#   "properties":{
-#     "jdbc-url":"jdbc:mysql://'"${MYSQL_HOST_IP}"':3306",
-#     "jdbc-user":"mysql",
-#     "jdbc-password":"mysql",
-#     "jdbc-driver":"com.mysql.cj.jdbc.Driver"
-#   }
-# }'
-
-# ensure_catalog "catalog_iceberg" '{
-#   "name":"catalog_iceberg",
-#   "type":"RELATIONAL",
-#   "provider":"lakehouse-iceberg",
-#   "comment":"comment",
-#   "properties":{
-#     "uri":"jdbc:mysql://'"${MYSQL_HOST_IP}"':3306/db",
-#     "catalog-backend":"jdbc",
-#     "warehouse":"hdfs://'"${HIVE_HOST_IP}"':9000/user/iceberg/warehouse/",
-#     "jdbc-user":"mysql",
-#     "jdbc-password":"mysql",
-#     "jdbc-driver":"com.mysql.cj.jdbc.Driver"
-#   }
-# }'
-
-# ensure_catalog "catalog_paimon" '{
-#   "name":"catalog_paimon",
-#   "type":"RELATIONAL",
-#   "provider":"lakehouse-paimon",
-#   "comment":"comment",
-#   "properties":{
-#     "catalog-backend":"filesystem",
-#     "warehouse":"hdfs://'"${HIVE_HOST_IP}"':9000/user/paimon/warehouse/",
-#     "catalog-backend-name":"paimon"
-#   }
-# }'
-
-# ensure_catalog "catalog_kafka" '{
-#   "name":"catalog_kafka",
-#   "type":"MESSAGING",
-#   "provider":"kafka",
-#   "comment":"comment",
-#   "properties":{"bootstrap.servers":"kafka:9092"}
-# }'
+response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catalog_paimon_s3)
+if echo "$response" | grep -q "\"code\":0"; then
+  true
+else
+  # Create Paimon catalog for experience Gravitino service
+  response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
+  -H "Content-Type: application/json" -d '{
+    "name":"catalog_paimon_s3",
+    "type":"RELATIONAL",
+    "provider":"lakehouse-paimon",
+    "comment":"catalog for paimon lakehouse",
+    "properties":{
+      "catalog-backend":"filesystem",
+      "warehouse":"s3://lakehouse-demo/paimon-lakehouse/",
+      "catalog-backend-name":"paimon",
+      "io-impl":"org.apache.iceberg.aws.s3.S3FileIO",
+      "s3-access-key-id":"minioadmin",
+      "s3-secret-access-key":"minioadmin",
+      "s3-endpoint":"http://minio:9000",
+      "s3-path-style-access":"true"
+    }
+  }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
+  if echo "$response" | grep -q "\"code\":0"; then
+    true # Placeholder, do nothing
+  else
+    echo "create catalog_paimon failed"
+    exit 1
+  fi
+fi

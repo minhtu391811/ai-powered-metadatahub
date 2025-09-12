@@ -9,3 +9,4 @@ jupyter/metastore_db/
 .venv/
 .vscode/
 **.tgz
+test/

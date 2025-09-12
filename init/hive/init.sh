@@ -42,14 +42,14 @@ cp /tmp/hive/core-site.xml /tmp/hadoop-conf
 
 /bin/bash /usr/local/sbin/start.sh
 hdfs dfs -mkdir -p /user/gravitino
-hdfs dfs -mkdir -p /user/hive/warehouse
+# hdfs dfs -mkdir -p /user/hive/warehouse
 hdfs dfs -mkdir -p /user/iceberg/warehouse
 hdfs dfs -mkdir -p /user/hudi/warehouse
 hdfs dfs -mkdir -p /user/paimon/warehouse
 useradd -g hdfs lisa
 useradd -g hdfs manager
 useradd -g hdfs anonymous
-hdfs dfs -chmod 777 /user/hive/warehouse/
+# hdfs dfs -chmod 777 /user/hive/warehouse/
 hdfs dfs -chmod 777 /user/iceberg/warehouse/
 hdfs dfs -chmod 777 /user/hudi/warehouse/
 hdfs dfs -chmod 777 /user/paimon/warehouse/

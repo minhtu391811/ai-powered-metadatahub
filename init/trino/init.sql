@@ -17,7 +17,7 @@
  * under the License.
  */
 
-CREATE TABLE catalog_hive.sales.categories (category_id int,category_name varchar(100));
+CREATE TABLE catalog_hive.sales.categories (category_id int, category_name varchar(100));
 
 CREATE TABLE catalog_hive.sales.customers (customer_id int, customer_name varchar(100), customer_email varchar(100));
 
