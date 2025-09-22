@@ -28,7 +28,7 @@ playgroundRuntimeName="ai-powered-metadatahub"
 requiredDiskSpaceGB=25
 requiredRamGB=6
 requiredCpuCores=2
-requiredPorts=(8090 9001 3307 19000 19083 60070 15342 18080 14040 17077 19092 9092 8080 9000 19001 18081 18888)
+requiredPorts=(8090 9001 3307 19000 19083 60070 19028 19008 6080 9000 19001 15342 13306 19092 9092 14040 18081 18080 18888 19090 13000)
 dockerComposeCommand=""
 
 testDocker() {
@@ -204,8 +204,6 @@ start() {
   DATA_DIR="${playground_dir}/data"
   sudo mkdir -p "$DATA_DIR"
   sudo mkdir -p "$DATA_DIR/gravitino/db"
-  sudo mkdir -p "$DATA_DIR/hive/name"
-  sudo mkdir -p "$DATA_DIR/hive/data"
   sudo mkdir -p "$DATA_DIR/minio/data"
   sudo mkdir -p "$DATA_DIR/jupyter/data"
 
@@ -213,9 +211,9 @@ start() {
 
   logSuffix=$(date +%Y%m%d%H%M%s)
   if [ "${enableRanger}" == true ]; then
-    ${dockerComposeCommand} -f docker-compose.yaml -f docker-enable-ranger-hive-override.yaml -p ${playgroundRuntimeName} up --detach
+    ${dockerComposeCommand} -f docker-enable-ranger-hive-override.yaml -p ${playgroundRuntimeName} up --detach
   else
-    ${dockerComposeCommand} -p ${playgroundRuntimeName} up --detach
+    ${dockerComposeCommand} -f docker-compose.yaml -p ${playgroundRuntimeName} up --detach
   fi
   ${dockerComposeCommand} -p ${playgroundRuntimeName} logs -f >${playground_dir}/playground-${logSuffix}.log 2>&1 &
   echo "[INFO] Check log details: ${playground_dir}/playground-${logSuffix}.log"

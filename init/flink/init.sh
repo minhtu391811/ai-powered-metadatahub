@@ -25,24 +25,18 @@ chmod 1777 /tmp
 cp /tmp/flink/flink-conf.yaml /opt/flink/conf/flink-conf.yaml
 
 cp /tmp/flink/packages/gravitino-flink-connector-runtime-1.18_2.12-0.9.1.jar /opt/flink/lib/gravitino-flink-connector-runtime-1.18_2.12-0.9.1.jar
-cp /tmp/flink/packages/flink-shaded-hadoop-2-uber-2.7.5-7.0.jar /opt/flink/lib/flink-shaded-hadoop-2-uber-2.7.5-7.0.jar
-cp /tmp/flink/packages/guava-14.0.1.jar /opt/flink/lib/guava-14.0.1.jar
-cp /tmp/flink/packages/hive-common-2.3.9.jar /opt/flink/lib/hive-common-2.3.9.jar
-cp /tmp/flink/packages/hive-exec-2.3.9.jar /opt/flink/lib/hive-exec-2.3.9.jar
-cp /tmp/flink/packages/hive-metastore-2.3.9.jar /opt/flink/lib/hive-metastore-2.3.9.jar
-cp /tmp/flink/packages/libthrift-0.22.0.jar /opt/flink/lib/libthrift-0.22.0.jar
-cp /tmp/flink/packages/libfb303-0.9.3.jar /opt/flink/lib/libfb303-0.9.3.jar
+cp /tmp/flink/packages/htrace-core4-4.0.1-incubating.jar /opt/flink/lib/htrace-core4-4.0.1-incubating.jar
 cp /tmp/flink/packages/flink-sql-connector-hive-2.3.9_2.12-1.18.1.jar /opt/flink/lib/flink-sql-connector-hive-2.3.9_2.12-1.18.1.jar
 cp /tmp/flink/packages/flink-connector-jdbc-3.2.0-1.18.jar /opt/flink/lib/flink-connector-jdbc-3.2.0-1.18.jar
+cp /tmp/flink/packages/flink-shaded-hadoop-2-uber-2.7.5-10.0.jar /opt/flink/lib/flink-shaded-hadoop-2-uber-2.7.5-10.0.jar
+cp /tmp/flink/packages/flink-s3-fs-presto-1.18.1.jar /opt/flink/lib/flink-s3-fs-presto-1.18.1.jar
 cp /tmp/flink/packages/mysql-connector-java-8.0.27.jar /opt/flink/lib/mysql-connector-java-8.0.27.jar
 cp /tmp/flink/packages/iceberg-flink-runtime-0.12.1.jar /opt/flink/lib/iceberg-flink-runtime-0.12.1.jar
+cp /tmp/flink/packages/iceberg-aws-bundle-1.8.1.jar /opt/flink/lib/iceberg-aws-bundle-1.8.1.jar
 cp /tmp/flink/packages/paimon-flink-1.18-0.8.2.jar /opt/flink/lib/paimon-flink-1.18-0.8.2.jar
-cp /tmp/flink/packages/paimon-core-0.8.2.jar /opt/flink/lib/paimon-core-0.8.2.jar
-cp /tmp/flink/packages/htrace-core-3.1.0-incubating.jar /opt/flink/lib/htrace-core-3.1.0-incubating.jar
-cp /tmp/flink/packages/htrace-core4-4.2.0-incubating.jar /opt/flink/lib/htrace-core4-4.2.0-incubating.jar
-cp /tmp/flink/packages/commons-configuration-1.10.jar /opt/flink/lib/commons-configuration-1.10.jar
-cp /tmp/flink/packages/commons-lang-2.6.jar /opt/flink/lib/commons-lang-2.6.jar
-cp /tmp/flink/packages/commons-logging-1.2.jar /opt/flink/lib/commons-logging-1.2.jar
+cp /tmp/flink/packages/paimon-bundle-0.8.2.jar /opt/flink/lib/paimon-bundle-0.8.2.jar
+cp /tmp/flink/packages/paimon-s3-0.8.2.jar /opt/flink/lib/paimon-s3-0.8.2.jar
+cp /tmp/flink/packages/bundle-2.33.0.jar /opt/flink/lib/bundle-2.33.0.jar
 
 ./bin/start-cluster.sh
 

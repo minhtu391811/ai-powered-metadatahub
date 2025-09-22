@@ -126,7 +126,6 @@ else
       "uri":"jdbc:mysql://'${MYSQL_HOST_IP}':3306/db",
       "catalog-backend":"jdbc",
       "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/iceberg/warehouse/",
-      "catalog-backend-name": "iceberg",
       "jdbc-user":"mysql",
       "jdbc-password":"mysql",
       "jdbc-driver":"com.mysql.cj.jdbc.Driver"
@@ -153,7 +152,7 @@ else
     "comment":"catalog for paimon lakehouse",
     "properties":{
       "catalog-backend":"filesystem",
-      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/hive/warehouse/",
+      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/paimon/warehouse/",
       "catalog-backend-name":"paimon"
     }
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
@@ -227,7 +226,6 @@ else
       "uri":"jdbc:mysql://'${MYSQL_HOST_IP}':3306/db",
       "catalog-backend":"jdbc",
       "warehouse":"s3://lakehouse-demo/iceberg-lakehouse/",
-      "catalog-backend-name": "iceberg_s3",
       "jdbc-user":"mysql",
       "jdbc-password":"mysql",
       "jdbc-driver":"com.mysql.cj.jdbc.Driver",
@@ -235,6 +233,7 @@ else
       "s3-access-key-id":"minioadmin",
       "s3-secret-access-key":"minioadmin",
       "s3-endpoint":"http://minio:9000",
+      "s3-region":"us-east-1",
       "s3-path-style-access":"true"
     } 
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
@@ -256,16 +255,19 @@ else
     "name":"catalog_paimon_s3",
     "type":"RELATIONAL",
     "provider":"lakehouse-paimon",
-    "comment":"catalog for paimon lakehouse",
+    "comment":"catalog for paimon lakehouse with s3",
     "properties":{
       "catalog-backend":"filesystem",
       "warehouse":"s3://lakehouse-demo/paimon-lakehouse/",
       "catalog-backend-name":"paimon",
-      "io-impl":"org.apache.iceberg.aws.s3.S3FileIO",
       "s3-access-key-id":"minioadmin",
       "s3-secret-access-key":"minioadmin",
       "s3-endpoint":"http://minio:9000",
-      "s3-path-style-access":"true"
+      "gravitino.bypass.s3.path.style.access":"true",
+      "flink.bypass.s3.access-key":"minioadmin",
+      "flink.bypass.s3.secret-key":"minioadmin",
+      "flink.bypass.s3.endpoint":"http://minio:9000",
+      "flink.bypass.s3.path.style.access":"true"
     }
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
   if echo "$response" | grep -q "\"code\":0"; then

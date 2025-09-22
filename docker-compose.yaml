@@ -30,8 +30,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      ranger:
-        condition: service_healthy
       mysql:
         condition: service_healthy
     volumes:
@@ -52,41 +50,20 @@ services:
       - "19000:9000"
       - "19083:9083"
       - "60070:50070"
+      - "19028:9028"
+      - "19008:9008"
     container_name: metadatahub-hive
-    depends_on:
-      ranger:
-        condition: service_healthy
     environment:
       - HADOOP_USER_NAME=root
     entrypoint: /bin/bash /tmp/hive/init.sh
     volumes:
       - ./init/hive:/tmp/hive
-      - ./data/hive/data:/tmp/hadoop-root/dfs/data
-      - ./data/hive/name:/tmp/hadoop-root/dfs/name
     healthcheck:
       test: ["CMD", "/tmp/check-status.sh"]
       interval: 10s
       timeout: 60s
       retries: 5
       start_period: 20s
-    cpus: 2.0
-    mem_limit: 2g
-
-  ranger:
-    image: apache/gravitino-playground:${RANGER_IMAGE_TAG}
-    ports:
-      - "6080:6080"
-    container_name: metadatahub-ranger
-    entrypoint: /bin/bash /tmp/ranger/init.sh
-    volumes:
-      - ./healthcheck:/tmp/healthcheck
-      - ./init/ranger:/tmp/ranger
-    healthcheck:
-      test: ["CMD", "/tmp/healthcheck/ranger-healthcheck.sh"]
-      interval: 5s
-      timeout: 60s
-      retries: 5
-      start_period: 120s
     cpus: 2.0
     mem_limit: 2g
 
@@ -121,7 +98,6 @@ services:
   postgresql:
     image: postgres:${POSTGRESQL_IMAGE_TAG}
     container_name: metadatahub-postgresql
-    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -211,7 +187,6 @@ services:
       timeout: 60s
       retries: 5
       start_period: 20s
-
     
   flink:
     image: flink:${FLINK_IMAGE_TAG}
@@ -242,6 +217,7 @@ services:
       - GRAVITINO_HOST_PORT=8090
       - GRAVITINO_METALAKE_NAME=metalake_demo
       - HIVE_HOST_IP=hive
+      - MYSQL_HOST_IP=mysql
       - POSTGRESQL_HOST_IP=postgresql
     entrypoint: /bin/bash /tmp/trino/init.sh
     volumes:
@@ -274,8 +250,27 @@ services:
     entrypoint: /bin/bash /tmp/gravitino/init.sh
     environment:
       - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
+      - FLINK_CONNECTOR_JAR=${FLINK_CONNECTOR_JAR}
     depends_on:
       hive:
         condition: service_healthy
       gravitino:
         condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_IMAGE_TAG}
+    container_name: metadatahub-prometheus
+    ports:
+      - "19090:9090"
+    volumes:
+      - ./init/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_IMAGE_TAG}
+    container_name: metadatahub-grafana
+    ports:
+      - "13000:3000"
+    volumes:
+      - ./init/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./init/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./init/grafana/dashboards:/etc/grafana/provisioning/dashboards

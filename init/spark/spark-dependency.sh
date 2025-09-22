@@ -41,17 +41,17 @@ KYUUBI_SPARK_AUTHZ_SHADED_JAR="https://repo1.maven.org/maven2/org/apache/kyuubi/
 KYUUBI_SPARK_AUTHZ_SHADED_MD5="${KYUUBI_SPARK_AUTHZ_SHADED_JAR}.md5"
 download_and_verify "${KYUUBI_SPARK_AUTHZ_SHADED_JAR}" "${KYUUBI_SPARK_AUTHZ_SHADED_MD5}" "${spark_dir}"
 
-ICEBERG_SPARK_RUNTIME_JAR="https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.4_2.12/1.5.2/iceberg-spark-runtime-3.4_2.12-1.5.2.jar"
+ICEBERG_SPARK_RUNTIME_JAR="https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.4_2.12/1.6.1/iceberg-spark-runtime-3.4_2.12-1.6.1.jar"
 ICEBERG_SPARK_RUNTIME_MD5="${ICEBERG_SPARK_RUNTIME_JAR}.md5"
 download_and_verify "${ICEBERG_SPARK_RUNTIME_JAR}" "${ICEBERG_SPARK_RUNTIME_MD5}" "${spark_dir}"
+
+ICEBERG_BUNDLE_JAR="https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/1.6.1/iceberg-aws-bundle-1.6.1.jar"
+ICEBERG_BUNDLE_MD5="${ICEBERG_BUNDLE_JAR}.md5"
+download_and_verify "${ICEBERG_BUNDLE_JAR}" "${ICEBERG_BUNDLE_MD5}" "${spark_dir}"
 
 PAIMON_SPARK_CONNECTOR_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-spark-3.4/0.8.2/paimon-spark-3.4-0.8.2.jar"
 PAIMON_SPARK_CONNECTOR_MD5="${PAIMON_SPARK_CONNECTOR_JAR}.md5"
 download_and_verify "${PAIMON_SPARK_CONNECTOR_JAR}" "${PAIMON_SPARK_CONNECTOR_MD5}" "${spark_dir}"
-
-PAIMON_CORE_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-core/0.8.2/paimon-core-0.8.2.jar"
-PAIMON_CORE_MD5="${PAIMON_CORE_JAR}.md5"
-download_and_verify "${PAIMON_CORE_JAR}" "${PAIMON_CORE_MD5}" "${spark_dir}"
 
 HUDI_SPARK_BUNDLE_JAR="https://repo1.maven.org/maven2/org/apache/hudi/hudi-spark3.4-bundle_2.12/1.0.2/hudi-spark3.4-bundle_2.12-1.0.2.jar"
 HUDI_SPARK_BUNDLE_MD5="${HUDI_SPARK_BUNDLE_JAR}.md5"

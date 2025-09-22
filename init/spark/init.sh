@@ -24,11 +24,13 @@ cp /tmp/spark/spark-env.sh /opt/spark/conf
 cp /tmp/spark/packages/postgresql-42.2.7.jar /opt/spark/jars/postgresql-42.2.7.jar
 cp /tmp/spark/packages/mysql-connector-java-8.0.27.jar /opt/spark/jars/mysql-connector-java-8.0.27.jar
 cp /tmp/spark/packages/kyuubi-spark-authz-shaded_2.12-1.9.2.jar /opt/spark/jars/kyuubi-spark-authz-shaded_2.12-1.9.2.jar
-cp /tmp/spark/packages/iceberg-spark-runtime-3.4_2.12-1.5.2.jar /opt/spark/jars/iceberg-spark-runtime-3.4_2.12-1.5.2.jar
+cp /tmp/spark/packages/iceberg-spark-runtime-3.4_2.12-1.6.1.jar /opt/spark/jars/iceberg-spark-runtime-3.4_2.12-1.6.1.jar
 cp /tmp/spark/packages/paimon-spark-3.4-0.8.2.jar /opt/spark/jars/paimon-spark-3.4-0.8.2.jar
-cp /tmp/spark/packages/paimon-core-0.8.2.jar /opt/spark/jars/paimon-core-0.8.2.jar
 cp /tmp/spark/packages/hudi-spark3.4-bundle_2.12-1.0.2.jar /opt/spark/jars/hudi-spark3.4-bundle_2.12-1.0.2.jar
 cp /tmp/spark/packages/${SPARK_CONNECTOR_JAR} /opt/spark/jars/${SPARK_CONNECTOR_JAR}
+cp /tmp/spark/packages/openlineage-spark_2.12-1.31.0-datastrato-1.jar /opt/spark/jars/openlineage-spark_2.12-1.31.0-datastrato-1.jar
+cp /tmp/spark/packages/bundle-2.33.0.jar /opt/spark/jars/bundle-2.33.0.jar
+cp /tmp/spark/packages/iceberg-aws-bundle-1.6.1.jar /opt/spark/jars/iceberg-aws-bundle-1.6.1.jar
 
 /tmp/common/init_metalake_catalog.sh
 
