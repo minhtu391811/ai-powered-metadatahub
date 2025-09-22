@@ -1,0 +1,6 @@
+{
+  "entrypoint": "mcp_server_gravitino/server/app.py",
+  "environment": {
+    "dependencies": ["httpx"]
+  }
+}
