@@ -21,6 +21,7 @@ response=$(curl http://gravitino:8090/api/metalakes/metalake_demo)
 if echo "$response" | grep -q "\"code\":0"; then
   true
 else
+  # Create metalake for experience Gravitino service
   response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
   -H "Content-Type: application/json" -d '{
     "name":"metalake_demo",
@@ -31,6 +32,25 @@ else
     true # Placeholder, do nothing
   else
     echo "Metalake metalake_demo create failed"
+    exit 1
+  fi
+fi
+
+response=$(curl http://gravitino:8090/api/metalakes/metalake_model)
+if echo "$response" | grep -q "\"code\":0"; then
+  true
+else
+  # Create metalake for experience Gravitino service
+  response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
+  -H "Content-Type: application/json" -d '{
+    "name":"metalake_model",
+    "comment":"metalake for ml models",
+    "properties":{}
+  }' http://gravitino:8090/api/metalakes)
+  if echo "$response" | grep -q "\"code\":0"; then
+    true # Placeholder, do nothing
+  else
+    echo "Metalake metalake_model create failed"
     exit 1
   fi
 fi
@@ -72,7 +92,7 @@ else
     "properties":{
       "jdbc-url":"jdbc:postgresql://postgresql/db",
       "jdbc-user":"postgres",
-      "jdbc-password":"postgres",
+      "jdbc-password":"password",
       "jdbc-database":"db",
       "jdbc-driver": "org.postgresql.Driver"
     } 
@@ -99,7 +119,7 @@ else
     "properties":{
       "jdbc-url":"jdbc:mysql://'${MYSQL_HOST_IP}':3306",
       "jdbc-user":"mysql",
-      "jdbc-password":"mysql",
+      "jdbc-password":"password",
       "jdbc-driver":"com.mysql.cj.jdbc.Driver"
     } 
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
@@ -127,7 +147,7 @@ else
       "catalog-backend":"jdbc",
       "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/iceberg/warehouse/",
       "jdbc-user":"mysql",
-      "jdbc-password":"mysql",
+      "jdbc-password":"password",
       "jdbc-driver":"com.mysql.cj.jdbc.Driver"
     } 
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
@@ -148,12 +168,11 @@ else
   -H "Content-Type: application/json" -d '{
     "name":"catalog_paimon",
     "type":"RELATIONAL",
-    "provider":"lakehouse-paimon",
+    "provider":"lakehouse-paimon",  
     "comment":"catalog for paimon lakehouse",
     "properties":{
       "catalog-backend":"filesystem",
-      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/paimon/warehouse/",
-      "catalog-backend-name":"paimon"
+      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/hive/warehouse/"
     }
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
   if echo "$response" | grep -q "\"code\":0"; then
@@ -168,7 +187,7 @@ response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catal
 if echo "$response" | grep -q "\"code\":0"; then
   true
 else
-  # Create Iceberg catalog for experience Gravitino service
+  # Create Hudi catalog for experience Gravitino service
   response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
   -H "Content-Type: application/json" -d '{
     "name":"catalog_hudi",
@@ -192,7 +211,7 @@ response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catal
 if echo "$response" | grep -q "\"code\":0"; then
   true
 else
-  # Create Hudi catalog for experience Gravitino service
+  # Create Kafka catalog for experience Gravitino service
   response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
   -H "Content-Type: application/json" -d '{
     "name":"catalog_kafka",
@@ -215,7 +234,7 @@ response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catal
 if echo "$response" | grep -q "\"code\":0"; then
   true
 else
-  # Create Iceberg catalog for experience Gravitino service
+  # Create Minio Iceberg catalog for experience Gravitino service
   response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
   -H "Content-Type: application/json" -d '{
     "name":"catalog_iceberg_s3",
@@ -225,9 +244,9 @@ else
     "properties":{
       "uri":"jdbc:mysql://'${MYSQL_HOST_IP}':3306/db",
       "catalog-backend":"jdbc",
-      "warehouse":"s3://lakehouse-demo/iceberg-lakehouse/",
+      "warehouse":"s3://iceberg-lakehouse/",
       "jdbc-user":"mysql",
-      "jdbc-password":"mysql",
+      "jdbc-password":"password",
       "jdbc-driver":"com.mysql.cj.jdbc.Driver",
       "io-impl":"org.apache.iceberg.aws.s3.S3FileIO",
       "s3-access-key-id":"minioadmin",
@@ -249,7 +268,7 @@ response=$(curl http://gravitino:8090/api/metalakes/metalake_demo/catalogs/catal
 if echo "$response" | grep -q "\"code\":0"; then
   true
 else
-  # Create Paimon catalog for experience Gravitino service
+  # Create Minio Paimon catalog for experience Gravitino service
   response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
   -H "Content-Type: application/json" -d '{
     "name":"catalog_paimon_s3",
@@ -258,7 +277,7 @@ else
     "comment":"catalog for paimon lakehouse with s3",
     "properties":{
       "catalog-backend":"filesystem",
-      "warehouse":"s3://lakehouse-demo/paimon-lakehouse/",
+      "warehouse":"s3://paimon-lakehouse/",
       "catalog-backend-name":"paimon",
       "s3-access-key-id":"minioadmin",
       "s3-secret-access-key":"minioadmin",
@@ -274,6 +293,31 @@ else
     true # Placeholder, do nothing
   else
     echo "create catalog_paimon failed"
+    exit 1
+  fi
+fi
+
+response=$(curl http://gravitino:8090/api/metalakes/metalake_model/catalogs/catalog_model)
+if echo "$response" | grep -q "\"code\":0"; then
+  true
+else
+  # Create Model catalog for experience Gravitino service
+  response=$(curl -X POST -H "Accept: application/vnd.gravitino.v1+json" \
+  -H "Content-Type: application/json" -d '{
+    "name":"catalog_model",
+    "type":"MODEL",
+    "comment":"catalog for ml models",
+    "properties":{
+      "framework": "tensorflow",
+      "algorithm": "dense_nn",
+      "task_type": "classification",
+      "dataset": "mnist_subset"
+    }
+  }' http://gravitino:8090/api/metalakes/metalake_model/catalogs)
+  if echo "$response" | grep -q "\"code\":0"; then
+    true # Placeholder, do nothing
+  else
+    echo "create catalog_model failed"
     exit 1
   fi
 fi

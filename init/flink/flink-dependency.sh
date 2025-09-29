@@ -30,7 +30,7 @@ if [[ ! -d "${flink_dir}/packages" ]]; then
   mkdir -p "${flink_dir}/packages"
 fi
 
-GRAVITINO_FLINK_CONNECTOR_RUNTIME_JAR="https://repo1.maven.org/maven2/org/apache/gravitino/gravitino-flink-connector-runtime-1.18_2.12/0.9.1/gravitino-flink-connector-runtime-1.18_2.12-0.9.1.jar"
+GRAVITINO_FLINK_CONNECTOR_RUNTIME_JAR="https://repo1.maven.org/maven2/org/apache/gravitino/gravitino-flink-connector-runtime-1.18_2.12/1.0.0/gravitino-flink-connector-runtime-1.18_2.12-1.0.0.jar"
 GRAVITINO_FLINK_CONNECTOR_RUNTIME_MD5="${GRAVITINO_FLINK_CONNECTOR_RUNTIME_JAR}.md5"
 download_and_verify "${GRAVITINO_FLINK_CONNECTOR_RUNTIME_JAR}" "${GRAVITINO_FLINK_CONNECTOR_RUNTIME_MD5}" "${flink_dir}"
 

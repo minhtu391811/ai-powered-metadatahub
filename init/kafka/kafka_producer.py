@@ -20,15 +20,15 @@ def wait_for_topic(topic_name, timeout=60):
             print(f"[DEBUG] Found topics: {topics}")
             admin.close()
             if topic_name in topics:
-                print(f"[INFO] Topic '{topic_name}' đã sẵn sàng.")
+                print(f"[INFO] Topic '{topic_name}' is ready.")
                 return True
             else:
-                print(f"[WARN] Topic '{topic_name}' chưa tồn tại. Còn {timeout - (time.time() - start):.1f}s")
+                print(f"[WARN] Topic '{topic_name}' does not exist yet. Remaining {timeout - (time.time() - start):.1f}s")
         except Exception as e:
-            print(f"[ERROR] Kafka chưa sẵn sàng ({type(e).__name__}): {e}")
+            print(f"[ERROR] Kafka is not ready ({type(e).__name__}): {e}")
             traceback.print_exc()
         time.sleep(2)
-    raise TimeoutError(f"Topic '{topic_name}' chưa sẵn sàng sau {timeout} giây.")
+    raise TimeoutError(f"Topic '{topic_name}' is not ready after {timeout} seconds.")
 
 def generate_fake_data():
     return {
@@ -53,11 +53,11 @@ if __name__ == "__main__":
             value_serializer=lambda v: json.dumps(v).encode("utf-8")
         )
     except Exception as e:
-        print(f"[FATAL] Không tạo được KafkaProducer: {e}")
+        print(f"[FATAL] Failed to create KafkaProducer: {e}")
         traceback.print_exc()
         exit(1)
 
-    print(f"[INFO] Bắt đầu gửi dữ liệu vào Kafka topic: {TOPIC_NAME}")
+    print(f"[INFO] Start sending data to Kafka topic: {TOPIC_NAME}")
     try:
         for i in range(10):
             data = generate_fake_data()
@@ -66,8 +66,8 @@ if __name__ == "__main__":
             print(f"[DEBUG] Sent message {i+1}: {data} | Metadata: {result}")
         producer.flush()
     except Exception as e:
-        print(f"[ERROR] Lỗi khi gửi dữ liệu: {e}")
+        print(f"[ERROR] Error while sending data: {e}")
         traceback.print_exc()
     finally:
         producer.close()
-        print("[INFO] Hoàn tất gửi dữ liệu.")
+        print("[INFO] Finished sending data.")

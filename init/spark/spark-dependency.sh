@@ -29,7 +29,7 @@ if [[ ! -d "${spark_dir}/packages" ]]; then
   mkdir -p "${spark_dir}/packages"
 fi
 
-GRAVITINO_SPARK_CONNECTOR_RUNTIME_JAR="https://repo1.maven.org/maven2/org/apache/gravitino/gravitino-spark-connector-runtime-3.4_2.12/0.9.1/gravitino-spark-connector-runtime-3.4_2.12-0.9.1.jar"
+GRAVITINO_SPARK_CONNECTOR_RUNTIME_JAR="https://repo1.maven.org/maven2/org/apache/gravitino/gravitino-spark-connector-runtime-3.4_2.12/1.0.0/gravitino-spark-connector-runtime-3.4_2.12-1.0.0.jar"
 GRAVITINO_SPARK_CONNECTOR_RUNTIME_MD5="${GRAVITINO_SPARK_CONNECTOR_RUNTIME_JAR}.md5"
 download_and_verify "${GRAVITINO_SPARK_CONNECTOR_RUNTIME_JAR}" "${GRAVITINO_SPARK_CONNECTOR_RUNTIME_MD5}" "${spark_dir}"
 

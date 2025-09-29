@@ -25,7 +25,6 @@ chmod 1777 /tmp
 cp /tmp/flink/flink-conf.yaml /opt/flink/conf/flink-conf.yaml
 
 cp /tmp/flink/packages/gravitino-flink-connector-runtime-1.18_2.12-0.9.1.jar /opt/flink/lib/gravitino-flink-connector-runtime-1.18_2.12-0.9.1.jar
-cp /tmp/flink/packages/htrace-core4-4.0.1-incubating.jar /opt/flink/lib/htrace-core4-4.0.1-incubating.jar
 cp /tmp/flink/packages/flink-sql-connector-hive-2.3.9_2.12-1.18.1.jar /opt/flink/lib/flink-sql-connector-hive-2.3.9_2.12-1.18.1.jar
 cp /tmp/flink/packages/flink-connector-jdbc-3.2.0-1.18.jar /opt/flink/lib/flink-connector-jdbc-3.2.0-1.18.jar
 cp /tmp/flink/packages/flink-shaded-hadoop-2-uber-2.7.5-10.0.jar /opt/flink/lib/flink-shaded-hadoop-2-uber-2.7.5-10.0.jar

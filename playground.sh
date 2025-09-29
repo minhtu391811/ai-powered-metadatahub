@@ -28,7 +28,7 @@ playgroundRuntimeName="ai-powered-metadatahub"
 requiredDiskSpaceGB=25
 requiredRamGB=6
 requiredCpuCores=2
-requiredPorts=(8090 9001 3307 19000 19083 60070 19028 19008 6080 9000 19001 15342 13306 19092 9092 14040 18081 18080 18888 19090 13000)
+requiredPorts=(8090 9001 3307 19000 19083 60070 19028 19008 6080 9000 19001 15342 13306 9092 9101 8080 14040 18081 18080 18888 19090 13000)
 dockerComposeCommand=""
 
 testDocker() {
@@ -177,9 +177,6 @@ start() {
     echo "[INFO] Starting the playground..."
   fi
 
-  python3 -m pip install --upgrade pip
-  python3 -m pip install -r "${playground_dir}/requirements.txt"
-
   echo "[INFO] The playground requires ${requiredCpuCores} CPU cores, ${requiredRamGB} GB of RAM, and ${requiredDiskSpaceGB} GB of disk storage to operate efficiently."
 
   checkPortsInUse
@@ -196,10 +193,10 @@ start() {
   find "${playground_dir}/init" -type f -name "*.sh" -exec chmod +x {} \;
   find "${playground_dir}/healthcheck" -type f -name "*.sh" -exec chmod +x {} \;
 
-  ./init/spark/spark-dependency.sh
-  ./init/gravitino/gravitino-dependency.sh
-  ./init/flink/flink-dependency.sh
-  ./init/jupyter/jupyter-dependency.sh
+  ${playground_dir}/init/spark/spark-dependency.sh
+  ${playground_dir}/init/gravitino/gravitino-dependency.sh
+  ${playground_dir}/init/flink/flink-dependency.sh
+  ${playground_dir}/init/jupyter/jupyter-dependency.sh
 
   DATA_DIR="${playground_dir}/data"
   sudo mkdir -p "$DATA_DIR"
@@ -221,6 +218,9 @@ start() {
 
   echo "[INFO] Preparing kafka messages..."
   python3 "${playground_dir}/init/kafka/kafka_producer.py"
+
+  echo "[INFO] Preparing model demo..."
+  python3 "${playground_dir}/init/minio/ml_models.sh"
 }
 
 status() {

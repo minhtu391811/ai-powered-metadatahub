@@ -57,7 +57,7 @@ services:
     container_name: metadatahub-hive
     environment:
       - HADOOP_USER_NAME=root
-      - HIVE_RUNTIME_VERSION=hive3
+      - HIVE_RUNTIME_VERSION=hive2
       - RANGER_SERVER_URL=http://ranger:6080
       - RANGER_HIVE_REPOSITORY_NAME=hiveDev
       - RANGER_HDFS_REPOSITORY_NAME=hdfsDev
@@ -186,49 +186,49 @@ services:
     volumes:
       - ./init/kafka:/tmp/kafka
 
-  spark:
-    image: spark:${SPARK_IMAGE_TAG}
-    container_name: metadatahub-spark
-    depends_on:
-      gravitino:
-        condition: service_healthy
-    entrypoint: /bin/bash /tmp/spark/init.sh
-    environment:
-      - HADOOP_USER_NAME=root
-      - HIVE_HOST_IP=hive
-      - MYSQL_HOST_IP=mysql
-      - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
-      - GRAVITINO_VERSION=${GRAVITINO_VERSION}
-    ports:
-      - "14040:4040"
-    volumes:
-      - ./init/spark:/tmp/spark
-      - ./init/common:/tmp/common
-      - ./healthcheck:/tmp/healthcheck
-    healthcheck:
-      test: ["CMD", "/tmp/healthcheck/spark-healthcheck.sh"]
-      interval: 10s
-      timeout: 60s
-      retries: 5
-      start_period: 20s
+  # spark:
+  #   image: spark:${SPARK_IMAGE_TAG}
+  #   container_name: metadatahub-spark
+  #   depends_on:
+  #     gravitino:
+  #       condition: service_healthy
+  #   entrypoint: /bin/bash /tmp/spark/init.sh
+  #   environment:
+  #     - HADOOP_USER_NAME=root
+  #     - HIVE_HOST_IP=hive
+  #     - MYSQL_HOST_IP=mysql
+  #     - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
+  #     - GRAVITINO_VERSION=${GRAVITINO_VERSION}
+  #   ports:
+  #     - "14040:4040"
+  #   volumes:
+  #     - ./init/spark:/tmp/spark
+  #     - ./init/common:/tmp/common
+  #     - ./healthcheck:/tmp/healthcheck
+  #   healthcheck:
+  #     test: ["CMD", "/tmp/healthcheck/spark-healthcheck.sh"]
+  #     interval: 10s
+  #     timeout: 60s
+  #     retries: 5
+  #     start_period: 20s
     
-  flink:
-    image: flink:${FLINK_IMAGE_TAG}
-    container_name: metadatahub-flink
-    depends_on:
-      gravitino:
-        condition: service_healthy
-    entrypoint: /bin/bash /tmp/flink/init.sh
-    environment:
-      - HADOOP_USER_NAME=root
-      - HIVE_HOST_IP=hive
-      - MYSQL_HOST_IP=mysql
-      - FLINK_CONNECTOR_JAR=${FLINK_CONNECTOR_JAR}
-      - GRAVITINO_VERSION=${GRAVITINO_VERSION}
-    ports:
-      - "18081:8081"
-    volumes:
-      - ./init/flink:/tmp/flink
+  # flink:
+  #   image: flink:${FLINK_IMAGE_TAG}
+  #   container_name: metadatahub-flink
+  #   depends_on:
+  #     gravitino:
+  #       condition: service_healthy
+  #   entrypoint: /bin/bash /tmp/flink/init.sh
+  #   environment:
+  #     - HADOOP_USER_NAME=root
+  #     - HIVE_HOST_IP=hive
+  #     - MYSQL_HOST_IP=mysql
+  #     - FLINK_CONNECTOR_JAR=${FLINK_CONNECTOR_JAR}
+  #     - GRAVITINO_VERSION=${GRAVITINO_VERSION}
+  #   ports:
+  #     - "18081:8081"
+  #   volumes:
+  #     - ./init/flink:/tmp/flink
 
   trino:
     image: apache/gravitino-playground:${TRINO_IMAGE_TAG}
@@ -247,12 +247,11 @@ services:
     volumes:
       - ./init/trino:/tmp/trino
       - ./healthcheck:/tmp/healthcheck
+      - ./init/common:/tmp/common
     depends_on:
       hive:
         condition: service_healthy
       gravitino:
-        condition: service_healthy
-      spark:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/tmp/healthcheck/trino-healthcheck.sh"]
@@ -271,6 +270,7 @@ services:
     volumes:
       - ./init/jupyter:/tmp/gravitino
       - ./data/jupyter/data:/home/jovyan
+      - ./data/jupyter/envs/flink-py310:/opt/conda/envs/flink-py310
     entrypoint: /bin/bash /tmp/gravitino/init.sh
     environment:
       - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
@@ -280,6 +280,8 @@ services:
       hive:
         condition: service_healthy
       gravitino:
+        condition: service_healthy
+      ranger:
         condition: service_healthy
 
   prometheus:

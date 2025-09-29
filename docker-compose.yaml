@@ -32,6 +32,12 @@ services:
         condition: service_healthy
       mysql:
         condition: service_healthy
+      postgresql:
+        condition: service_started
+      kafka:
+        condition: service_started
+      # keycloak:
+      #   condition: service_healthy
     volumes:
       - ./healthcheck:/tmp/healthcheck
       - ./init/gravitino:/tmp/gravitino
@@ -106,6 +112,7 @@ services:
       - "15432:5432"
     volumes:
       - ./init/postgres:/docker-entrypoint-initdb.d/
+      - ./data/postgresql/data:/var/lib/postgresql/data
 
   mysql:
     image: mysql:${MYSQL_IMAGE_TAG}
@@ -120,6 +127,7 @@ services:
     volumes:
       - ./init/mysql:/docker-entrypoint-initdb.d/
       - ./healthcheck:/tmp/healthcheck
+      - ./data/mysql/data:/var/lib/mysql
     command: 
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
@@ -193,7 +201,7 @@ services:
     container_name: metadatahub-flink
     depends_on:
       gravitino:
-        condition: service_healthy
+        condition: service_started
     entrypoint: /bin/bash /tmp/flink/init.sh
     environment:
       - HADOOP_USER_NAME=root
@@ -222,13 +230,12 @@ services:
     entrypoint: /bin/bash /tmp/trino/init.sh
     volumes:
       - ./init/trino:/tmp/trino
+      - ./init/common:/tmp/common
       - ./healthcheck:/tmp/healthcheck
     depends_on:
       hive:
         condition: service_healthy
       gravitino:
-        condition: service_healthy
-      spark:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/tmp/healthcheck/trino-healthcheck.sh"]
@@ -247,6 +254,7 @@ services:
     volumes:
       - ./init/jupyter:/tmp/gravitino
       - ./data/jupyter/data:/home/jovyan
+      - ./data/jupyter/envs/flink-py310:/opt/conda/envs/flink-py310
     entrypoint: /bin/bash /tmp/gravitino/init.sh
     environment:
       - SPARK_CONNECTOR_JAR=${SPARK_CONNECTOR_JAR}
@@ -256,6 +264,29 @@ services:
         condition: service_healthy
       gravitino:
         condition: service_healthy
+
+  # keycloak:
+  #   image: keycloak/keycloak:${KEYCLOAK_IMAGE_TAG}
+  #   container_name: metadatahub-keycloak
+  #   environment:
+  #     - KC_DB=postgres
+  #     - KC_DB_URL=jdbc:postgresql://postgresql:5432/${POSTGRES_DATABASE}
+  #     - KC_DB_USERNAME=${POSTGRES_USER}
+  #     - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+  #     - KC_BOOTSTRAP_ADMIN_USERNAME=${KC_BOOTSTRAP_ADMIN_USERNAME}
+  #     - KC_BOOTSTRAP_ADMIN_PASSWORD=${KC_BOOTSTRAP_ADMIN_PASSWORD}
+  #     - KC_HEALTH_ENABLED=true
+  #   command: start-dev
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     postgresql:
+  #       condition: service_started
+  #   healthcheck:
+  #       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost:9000\r\nConnection: close\r\n\r\n' >&3;cat <&3 | grep -q '\"status\": \"UP\"' && exit 0 || exit 1"]
+  #       interval: 30s
+  #       timeout: 10s
+  #       retries: 3
 
   prometheus:
     image: prom/prometheus:${PROMETHEUS_IMAGE_TAG}

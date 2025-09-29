@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+CREATE USER 'manager'@'%' IDENTIFIED BY 'Manager@123';
+GRANT ALL PRIVILEGES ON *.* TO 'manager'@'%';
+FLUSH PRIVILEGES;
+
 GRANT ALL PRIVILEGES on *.* to 'mysql'@'%';
 FLUSH PRIVILEGES;
 CREATE DATABASE IF NOT EXISTS `demo_llamaindex`;

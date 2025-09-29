@@ -33,16 +33,10 @@ if [ -n "$(find /home/jovyan -maxdepth 1 -name "*.ipynb" -print -quit)" ]; then
     echo "Already have .ipynb files in the directory, skip copying"
 else
     echo "No .ipynb files in the directory, copy the default .ipynb files"
-
-    if [ -z "$RANGER_ENABLE" ]; then
-      cp -r /tmp/gravitino/*.ipynb /home/jovyan
-    else
+    cp -r /tmp/gravitino/*.ipynb /home/jovyan
+    if ["$RANGER_ENABLE"==true]; then
       cp -r /tmp/gravitino/authorization/*.ipynb /home/jovyan
     fi
 fi
-
-conda create -n flink-py310 python=3.10 -y
-conda run -n flink-py310 pip install jupyter ipykernel apache-flink==1.18.1
-echo "Installed Flink environment"
 
 start-notebook.sh --NotebookApp.token=''
