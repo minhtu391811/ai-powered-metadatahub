@@ -17,12 +17,9 @@
  * under the License.
  */
 
-CREATE USER 'manager'@'%' IDENTIFIED BY 'Manager@123';
-GRANT ALL PRIVILEGES ON *.* TO 'manager'@'%';
-FLUSH PRIVILEGES;
 
-GRANT ALL PRIVILEGES on *.* to 'mysql'@'%';
-FLUSH PRIVILEGES;
+CREATE DATABASE IF NOT EXISTS `gravitino`;
+CREATE DATABASE IF NOT EXISTS `hive` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 CREATE DATABASE IF NOT EXISTS `demo_llamaindex`;
 CREATE TABLE IF NOT EXISTS `demo_llamaindex`.`city_stats`  (
   `city_name` text,
@@ -32,3 +29,16 @@ CREATE TABLE IF NOT EXISTS `demo_llamaindex`.`city_stats`  (
 INSERT INTO `demo_llamaindex`.`city_stats` (city_name, population, country) VALUES ("Toronto", 2930000, "Canada");
 INSERT INTO `demo_llamaindex`.`city_stats` (city_name, population, country) VALUES ("Tokyo", 13960000, "Japan");
 INSERT INTO `demo_llamaindex`.`city_stats` (city_name, population, country) VALUES ("Berlin", 3645000, "Germany");
+
+CREATE USER 'gravitino'@'%' IDENTIFIED BY 'gravitino';
+GRANT ALL PRIVILEGES ON gravitino.* TO 'gravitino'@'%';
+
+CREATE USER 'hive'@'%' IDENTIFIED BY 'hive';  
+GRANT ALL PRIVILEGES on hive.* to 'hive'@'%';
+CREATE USER 'iceberg'@'%' IDENTIFIED BY 'iceberg';
+GRANT ALL PRIVILEGES on hive.* to 'iceberg'@'%';
+
+GRANT ALL PRIVILEGES on *.* to 'mysql'@'%';
+
+FLUSH PRIVILEGES;
+

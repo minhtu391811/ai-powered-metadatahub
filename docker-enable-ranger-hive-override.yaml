@@ -55,6 +55,9 @@ services:
       - "19028:9028"
       - "19008:9008"
     container_name: metadatahub-hive
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
       - HADOOP_USER_NAME=root
       - HIVE_RUNTIME_VERSION=hive2

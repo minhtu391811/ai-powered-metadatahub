@@ -41,6 +41,10 @@ echo ">> Starting Hive init..."
 cp -r /tmp/hive/java_metrics /opt/java_metrics
 cp /tmp/hive/hive-env.sh /tmp/hive-conf
 cp /tmp/hive/core-site.xml /tmp/hadoop-conf
+cp /tmp/hive/hive-site.xml /tmp/hive-conf
+cp /tmp/hive/hive-site-for-sql-base-auth.xml /tmp/hive-conf
+cp /tmp/hive/start.sh /usr/local/sbin/start.sh
+chmod +x /usr/local/sbin/start.sh
 
 /bin/bash /usr/local/sbin/start.sh
 hdfs dfs -mkdir -p /user/gravitino

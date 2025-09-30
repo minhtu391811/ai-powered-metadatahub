@@ -28,7 +28,7 @@ y_test = y_test[:1000]
 
 dataset_file = "mnist_subset.npz"
 np.savez(dataset_file, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
-client.fput_object(BUCKET_NAME, "classification-models/dataset/mnist_subset.npz", dataset_file)
+client.fput_object(BUCKET_NAME, "classification_models/dataset/mnist_subset.npz", dataset_file)
 print("✅ Dataset uploaded to MinIO")
 
 # Function train & upload model
@@ -47,7 +47,7 @@ def train_and_upload(version: str, epochs: int = 3):
     model_zip = f"{model_dir}.zip"
     shutil.make_archive(model_dir, "zip", model_dir)
 
-    client.fput_object(BUCKET_NAME, f"classification-models/model_1/{os.path.basename(model_zip)}", model_zip)
+    client.fput_object(BUCKET_NAME, f"classification_models/model_1/{os.path.basename(model_zip)}", model_zip)
     print(f"✅ Model v{version} uploaded to MinIO")
 
 # Train 2 versions

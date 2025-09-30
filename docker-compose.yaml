@@ -41,7 +41,6 @@ services:
     volumes:
       - ./healthcheck:/tmp/healthcheck
       - ./init/gravitino:/tmp/gravitino
-      - ./data/gravitino/db:/root/gravitino/data
     healthcheck:
       test: ["CMD", "/tmp/healthcheck/gravitino-healthcheck.sh"]
       interval: 10s
@@ -59,6 +58,9 @@ services:
       - "19028:9028"
       - "19008:9008"
     container_name: metadatahub-hive
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
       - HADOOP_USER_NAME=root
     entrypoint: /bin/bash /tmp/hive/init.sh
