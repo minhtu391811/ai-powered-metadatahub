@@ -30,4 +30,4 @@ if [ $? -eq 0 ]; then
 else
   echo "Hive connection failed"
   exit 1
-fi
+file

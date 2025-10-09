@@ -28,7 +28,7 @@ playgroundRuntimeName="ai-powered-metadatahub"
 requiredDiskSpaceGB=25
 requiredRamGB=6
 requiredCpuCores=2
-requiredPorts=(8090 9001 3307 19000 19083 60070 19028 19008 6080 9000 19001 15342 13306 9092 9101 8080 14040 18081 18080 18888 19090 13000)
+requiredPorts=(8090 9001 8000 3307 19000 19083 60070 19028 19008 6080 9000 19001 15342 13306 9092 9101 8080 14040 18081 18080 18888 19090 13000)
 dockerComposeCommand=""
 
 testDocker() {
@@ -220,7 +220,7 @@ start() {
   python3 "${playground_dir}/init/kafka/kafka_producer.py"
 
   echo "[INFO] Preparing model demo..."
-  python3 "${playground_dir}/init/minio/ml_models.sh"
+  python3 "${playground_dir}/init/minio/ml_models.py"
 }
 
 status() {

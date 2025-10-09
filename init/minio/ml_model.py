@@ -26,7 +26,7 @@ y_train = y_train[:5000]
 x_test = x_test[:1000].astype("float32") / 255.0
 y_test = y_test[:1000]
 
-dataset_file = "mnist_subset.npz"
+dataset_file = "models/dataset/mnist_subset.npz"
 np.savez(dataset_file, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test)
 client.fput_object(BUCKET_NAME, "classification_models/dataset/mnist_subset.npz", dataset_file)
 print("✅ Dataset uploaded to MinIO")

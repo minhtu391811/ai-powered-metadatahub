@@ -143,12 +143,8 @@ else
     "provider":"lakehouse-iceberg",
     "comment":"catalog for iceberg lakehouse",
     "properties":{
-      "uri":"jdbc:mysql://'${MYSQL_HOST_IP}':3306/db",
-      "catalog-backend":"jdbc",
-      "warehouse":"hdfs://'${HIVE_HOST_IP}':9000/user/iceberg/warehouse/",
-      "jdbc-user":"mysql",
-      "jdbc-password":"password",
-      "jdbc-driver":"com.mysql.cj.jdbc.Driver"
+      "uri":"http://gravitino:9001/iceberg",
+      "catalog-backend":"rest"
     } 
   }' http://gravitino:8090/api/metalakes/metalake_demo/catalogs)
   if echo "$response" | grep -q "\"code\":0"; then
