@@ -1,13 +1,14 @@
 set -e
 
-echo "Chờ Kafka sẵn sàng..."
-
-sleep 5
+echo "Waiting for Kafka broker to be ready..."
+until kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1; do
+  sleep 2
+done
 
 TOPICS=("gravitino" "system" "user")
 
 for topic in "${TOPICS[@]}"; do
-    echo "Tạo topic: $topic"
+    echo "Creating topic: $topic"
     kafka-topics.sh --create --if-not-exists \
         --bootstrap-server kafka:9092 \
         --replication-factor 1 \
@@ -15,4 +16,4 @@ for topic in "${TOPICS[@]}"; do
         --topic "$topic"
 done
 
-echo "Hoàn tất tạo topic"
+echo "Finished creating topics"

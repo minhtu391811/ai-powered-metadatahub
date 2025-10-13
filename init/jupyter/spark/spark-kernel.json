@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python",
+    "-m",
+    "ipykernel_launcher",
+    "-f",
+    "{connection_file}"
+  ],
+  "display_name": "Python 3.11 (Spark 3.4.2)",
+  "language": "python",
+  "env": {
+    "SPARK_HOME": "/home/jovyan/spark-3.4.2-bin-hadoop3",
+    "PATH": "/home/jovyan/spark-3.4.2-bin-hadoop3/bin:${PATH}",
+    "PYTHONPATH": "/home/jovyan/spark-3.4.2-bin-hadoop3/python:/home/jovyan/spark-3.4.2-bin-hadoop3/python/lib/py4j-0.10.9.7-src.zip"
+  }
+}

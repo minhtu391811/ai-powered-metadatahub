@@ -28,6 +28,22 @@ if [[ ! -d "${gravitino_dir}/packages" ]]; then
   mkdir -p "${gravitino_dir}/packages"
 fi
 # Prepare download packages
+MYSQL_CONNECTOR_JAVA_JAR="https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.27/mysql-connector-java-8.0.27.jar"
+MYSQL_CONNECTOR_JAVA_MD5="${MYSQL_CONNECTOR_JAVA_JAR}.md5"
+download_and_verify "${MYSQL_CONNECTOR_JAVA_JAR}" "${MYSQL_CONNECTOR_JAVA_MD5}" "${gravitino_dir}"
+
 POSTGRESQL_JAR="https://repo1.maven.org/maven2/org/postgresql/postgresql/42.2.7/postgresql-42.2.7.jar"
 POSTGRESQL_MD5="${POSTGRESQL_JAR}.md5"
 download_and_verify "${POSTGRESQL_JAR}" "${POSTGRESQL_MD5}" "${gravitino_dir}"
+
+ICEBERG_AWS_BUNDLE_JAR="https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/1.6.1/iceberg-aws-bundle-1.6.1.jar"
+ICEBERG_AWS_BUNDLE_MD5="${ICEBERG_AWS_BUNDLE_JAR}.md5"
+download_and_verify "${ICEBERG_AWS_BUNDLE_JAR}" "${ICEBERG_AWS_BUNDLE_MD5}" "${gravitino_dir}"
+
+PAIMON_BUNDLE_JAR="https://repo1.maven.org/maven2/org/apache/paimon/paimon-s3/0.8.2/paimon-s3-0.8.2.jar"
+PAIMON_BUNDLE_MD5="${PAIMON_BUNDLE_JAR}.md5"
+download_and_verify "${PAIMON_BUNDLE_JAR}" "${PAIMON_BUNDLE_MD5}" "${gravitino_dir}"
+
+PAIMON_S3_JAR="https://repo.maven.apache.org/maven2/org/apache/paimon/paimon-s3/0.8.2/paimon-s3-0.8.2.jar"
+PAIMON_S3_MD5="${PAIMON_S3_JAR}.md5"
+download_and_verify "${PAIMON_S3_JAR}" "${PAIMON_S3_MD5}" "${gravitino_dir}"

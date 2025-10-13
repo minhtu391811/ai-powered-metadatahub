@@ -18,7 +18,6 @@
 #
 
 sh /tmp/common/init_metalake_catalog.sh
-
 /etc/trino/update-trino-conf.sh
 nohup /usr/lib/trino/bin/run-trino &
 
@@ -37,6 +36,7 @@ while [ $counter -le 240 ]; do
 
     # persist the container
     tail -f /dev/null
+    break
   fi
 done
 exit 1

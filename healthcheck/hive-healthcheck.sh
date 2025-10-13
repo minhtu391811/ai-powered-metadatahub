@@ -17,6 +17,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+
 set -ex
 
 # Attempt to connect to Hive using curl
@@ -29,4 +30,4 @@ if [ $? -eq 0 ]; then
 else
   echo "Hive connection failed"
   exit 1
-fi
+file

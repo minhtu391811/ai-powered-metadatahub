@@ -18,10 +18,20 @@
 #
 echo "Start to download the jar package of JDBC"
 cp /tmp/gravitino/packages/postgresql-42.2.7.jar /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar
-cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/catalogs/lakehouse-iceberg/libs
-cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/catalogs/lakehouse-paimon/libs
+cp /tmp/gravitino/packages/mysql-connector-java-8.0.27.jar /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar
+cp /tmp/gravitino/packages/iceberg-aws-bundle-1.6.1.jar /root/gravitino/catalogs/iceberg-aws-bundle-1.6.1.jar
+cp /tmp/gravitino/packages/paimon-s3-0.8.2.jar /root/gravitino/catalogs/paimon-s3-0.8.2.jar
+cp /tmp/gravitino/packages/paimon-bundle-0.8.2.jar /root/gravitino/catalogs/paimon-bundle-0.8.2.jar
 
+cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/catalogs/lakehouse-iceberg/libs
+cp /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar /root/gravitino/catalogs/lakehouse-iceberg/libs
+cp /root/gravitino/catalogs/iceberg-aws-bundle-1.6.1.jar /root/gravitino/catalogs/lakehouse-iceberg/libs
+cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/catalogs/lakehouse-paimon/libs
+cp /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar /root/gravitino/catalogs/lakehouse-paimon/libs
+cp /root/gravitino/catalogs/paimon-s3-0.8.2.jar /root/gravitino/catalogs/lakehouse-paimon/libs
+cp /root/gravitino/catalogs/paimon-bundle-0.8.2.jar /root/gravitino/catalogs/lakehouse-paimon/libs
 cp /root/gravitino/catalogs/jdbc-postgresql/libs/postgresql-42.2.7.jar /root/gravitino/iceberg-rest-server/libs
+cp /root/gravitino/catalogs/jdbc-mysql/libs/mysql-connector-java-8.0.27.jar /root/gravitino/iceberg-rest-server/libs
 
 cp /tmp/gravitino/gravitino.conf /root/gravitino/conf
 

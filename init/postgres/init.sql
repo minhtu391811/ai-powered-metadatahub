@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+-- CREATE DATABASE keycloak;
+-- CREATE USER keycloak WITH PASSWORD 'keycloak';
+-- GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+
 CREATE DATABASE db;
 \c db;
 

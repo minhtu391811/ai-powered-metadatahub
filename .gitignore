@@ -3,5 +3,10 @@
 **/packages
 **/*.log
 data/
-venv/
+jupyter/.ipynb_checkpoints/
+jupyter/artifacts/
+jupyter/metastore_db/
+.venv/
 .vscode/
+**.tgz
+test/

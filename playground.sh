@@ -24,11 +24,11 @@ playground_dir="$(
   pwd
 )"
 
-playgroundRuntimeName="gravitino-playground"
+playgroundRuntimeName="ai-powered-metadatahub"
 requiredDiskSpaceGB=25
 requiredRamGB=6
 requiredCpuCores=2
-requiredPorts=(8090 9001 3307 19000 19083 60070 15342 18080 14040 19092)
+requiredPorts=(8090 9001 8000 3307 19000 19083 60070 19028 19008 6080 9000 19001 15342 13306 9092 9101 8080 14040 18081 18080 18888 19090 13000)
 dockerComposeCommand=""
 
 testDocker() {
@@ -167,14 +167,15 @@ checkPortsInUse() {
 
 pruneLegacyLogs() {
   # delete all log files except the latest 3
-  ls -tp playground-*.log | grep -v '/$' | tail -n +4 | xargs -I {} rm -- {}
+  ls -tp playground-*.log | grep -v '/$' | tail -n +2 | xargs -I {} rm -- {}
 }
 
 start() {
-  echo "[INFO] Starting the playground..."
-
-  pip3 install --upgrade pip
-  pip3 install -r "${playground_dir}/requirements.txt"
+  if [ "${enableRanger}" == true ]; then
+    echo "[INFO] Starting the playground with Ranger..."
+  else
+    echo "[INFO] Starting the playground..."
+  fi
 
   echo "[INFO] The playground requires ${requiredCpuCores} CPU cores, ${requiredRamGB} GB of RAM, and ${requiredDiskSpaceGB} GB of disk storage to operate efficiently."
 
@@ -188,24 +189,38 @@ start() {
 
   cd ${playground_dir}
   echo "[INFO] Preparing packages..."
-  ./init/spark/spark-dependency.sh
-  ./init/gravitino/gravitino-dependency.sh
+  sudo chown -R $(whoami):$(whoami) "${playground_dir}/init"
+  find "${playground_dir}/init" -type f -name "*.sh" -exec chmod +x {} \;
+  find "${playground_dir}/healthcheck" -type f -name "*.sh" -exec chmod +x {} \;
+
+  ${playground_dir}/init/spark/spark-dependency.sh
+  ${playground_dir}/init/gravitino/gravitino-dependency.sh
+  ${playground_dir}/init/flink/flink-dependency.sh
+  ${playground_dir}/init/jupyter/jupyter-dependency.sh
+
+  DATA_DIR="${playground_dir}/data"
+  sudo mkdir -p "$DATA_DIR"
+  sudo mkdir -p "$DATA_DIR/gravitino/db"
+  sudo mkdir -p "$DATA_DIR/minio/data"
+  sudo mkdir -p "$DATA_DIR/jupyter/data"
+
+  sudo chown -R 1000:1000 "$DATA_DIR/jupyter/data"
 
   logSuffix=$(date +%Y%m%d%H%M%s)
-  ${dockerComposeCommand} -p ${playgroundRuntimeName} up --detach
+  if [ "${enableRanger}" == true ]; then
+    ${dockerComposeCommand} -f docker-enable-ranger-hive-override.yaml -p ${playgroundRuntimeName} up --detach
+  else
+    ${dockerComposeCommand} -f docker-compose.yaml -p ${playgroundRuntimeName} up --detach
+  fi
   ${dockerComposeCommand} -p ${playgroundRuntimeName} logs -f >${playground_dir}/playground-${logSuffix}.log 2>&1 &
   echo "[INFO] Check log details: ${playground_dir}/playground-${logSuffix}.log"
-  sudo chown -R minhtu:minhtu "${playground_dir}/data"
   pruneLegacyLogs
 
-  echo "[INFO] Waiting for Kafka to be ready on port 19092..."
-  while ! nc -z localhost 19092; do
-    sleep 1
-  done
-  echo "[INFO] Kafka is ready! Running init.py..."
+  echo "[INFO] Preparing kafka messages..."
+  python3 "${playground_dir}/init/kafka/kafka_producer.py"
 
-  python3 "${playground_dir}/init/kafka/messages.py"
-  echo "[INFO] messages.py completed."
+  echo "[INFO] Preparing model demo..."
+  python3 "${playground_dir}/init/minio/ml_models.py"
 }
 
 status() {
@@ -219,24 +234,29 @@ stop() {
   checkPlaygroundRunning
   echo "[INFO] Stopping the playground..."
 
-  ${dockerComposeCommand} down
+  ${dockerComposeCommand} -p ${playgroundRuntimeName} down
   if [ $? -eq 0 ]; then
     echo "[INFO] Playground stopped!"
   fi
 }
 
 case "$1" in
-  start)
-    start
-    ;;
-  status)
-    status
-    ;;
-  stop)
-    stop
-    ;;
-  *)
-    echo "Usage: $0 <start|status|stop>"
-    exit 1
-    ;;
+start)
+  if [[ "$2" == "--enable-ranger" ]]; then
+    enableRanger=true
+  else
+    enableRanger=false
+  fi
+  start
+  ;;
+status)
+  status
+  ;;
+stop)
+  stop
+  ;;
+*)
+  echo "Usage: $0 <start|status|stop> [--enable-ranger]"
+  exit 1
+  ;;
 esac
