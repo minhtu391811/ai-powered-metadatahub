@@ -15,13 +15,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Database, Table, FolderTree, Users, MessageSquare, LogOut, Menu, X } from "lucide-react"
+import { DatabaseZap, Database, Table, FolderTree, Users, MessageSquare, LogOut, Menu, X, Shield, ListChecks } from "lucide-react"
 
 const navigation = [
   { name: "Catalogs", href: "/dashboard", icon: Database },
   { name: "Schemas", href: "/dashboard/schemas", icon: FolderTree },
   { name: "Tables", href: "/dashboard/tables", icon: Table },
   { name: "Access Control", href: "/dashboard/access-control", icon: Users },
+  { name: "Governance", href: "/dashboard/governance", icon: Shield },
+  { name: "Job", href: "/dashboard/job", icon: ListChecks },
   { name: "AI Assistant", href: "/dashboard/ai-assistant", icon: MessageSquare },
 ]
 
@@ -43,8 +45,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <Database className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">Gravitino</span>
+              <DatabaseZap className="h-6 w-6 text-primary" />
+              <span className="text-xl font-bold">Gravitino Metahub</span>
             </Link>
 
             {/* Desktop Navigation */}

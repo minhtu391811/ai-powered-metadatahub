@@ -1,25 +1,41 @@
 import { tool } from "ai"
 import { z } from "zod"
 
-// Cấu hình MCP server
-const MCP_BASE_URL = process.env.MCP_BASE_URL || "http://localhost:8000/mcp"
+// Cấu hình MCP server - sử dụng internal proxy để bypass CORS
+const MCP_BASE_URL = "/api/mcp-proxy"
 
 // Helper gọi MCP tool
 async function callMCP<TInput extends object, TOutput>(toolName: string, input: TInput): Promise<TOutput> {
-  const url = `${MCP_BASE_URL}/${toolName}`
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(input),
-  })
-  if (!resp.ok) {
-    const bodyText = await resp.text()
-    throw new Error(`MCP tool ${toolName} failed: ${resp.status} ${resp.statusText} — ${bodyText}`)
+  try {
+    const url = MCP_BASE_URL
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ toolName, input }),
+      // Add timeout
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    })
+    
+    if (!resp.ok) {
+      const bodyText = await resp.text()
+      console.error(`MCP tool ${toolName} failed:`, resp.status, resp.statusText, bodyText)
+      throw new Error(`MCP tool ${toolName} failed: ${resp.status} ${resp.statusText} — ${bodyText}`)
+    }
+    
+    const json = await resp.json()
+    return json as TOutput
+  } catch (error) {
+    console.error(`Error calling MCP tool ${toolName}:`, error)
+    if (error instanceof Error) {
+      if (error.name === 'TimeoutError') {
+        throw new Error(`MCP tool ${toolName} timed out after 10 seconds`)
+      }
+      throw new Error(`MCP tool ${toolName} error: ${error.message}`)
+    }
+    throw new Error(`MCP tool ${toolName} failed with unknown error`)
   }
-  const json = await resp.json()
-  return json as TOutput
 }
 
 // Định nghĩa tool wrappers
@@ -29,7 +45,7 @@ export const getListOfCatalogsTool = tool({
   inputSchema: z.object({}), // không cần input
   execute: async (_input) => {
     return await callMCP<{}, { catalogs: Array<{ name: string; type: string; schemas: number; tables: number }> }>(
-      "get_list_of_catalogs",
+      "mcp_gravitino_get_list_of_catalogs",
       {},
     )
   },
@@ -44,7 +60,7 @@ export const getListOfSchemasTool = tool({
     return await callMCP<
       { catalog: string },
       { catalog: string; schemas: Array<{ name: string; tables: number; views?: number }> }
-    >("get_list_of_schemas", { catalog })
+    >("mcp_gravitino_get_list_of_schemas", { catalog })
   },
 })
 
@@ -58,7 +74,7 @@ export const getListOfTablesTool = tool({
     return await callMCP<
       { catalog: string; schema: string },
       { catalog: string; schema: string; tables: Array<{ name: string }> }
-    >("get_list_of_tables", { catalog, schema })
+    >("mcp_gravitino_get_list_of_tables", { catalog, schema })
   },
 })
 
@@ -73,7 +89,7 @@ export const getTableMetadataDetailsTool = tool({
     return await callMCP<
       { catalog: string; schema: string; table: string },
       { catalog: string; schema: string; table: string; columns: Array<unknown>; metadata?: object }
-    >("get_table_metadata_details", { catalog, schema, table })
+    >("mcp_gravitino_get_table_metadata_details", { catalog, schema, table })
   },
 })
 
@@ -87,7 +103,7 @@ export const listOfModelsTool = tool({
     return await callMCP<
       { catalog: string; schema: string },
       { catalog: string; schema: string; models: Array<{ name: string }> }
-    >("list_of_models", { catalog, schema })
+    >("mcp_gravitino_list_of_models", { catalog, schema })
   },
 })
 
@@ -102,7 +118,7 @@ export const loadModelTool = tool({
     return await callMCP<
       { catalog: string; schema: string; model: string },
       { catalog: string; schema: string; model: string; metadata: object }
-    >("load_model", { catalog, schema, model })
+    >("mcp_gravitino_load_model", { catalog, schema, model })
   },
 })
 
@@ -117,7 +133,7 @@ export const listModelVersionsTool = tool({
     return await callMCP<
       { catalog: string; schema: string; model: string },
       { catalog: string; schema: string; model: string; versions: Array<string> }
-    >("list_model_versions", { catalog, schema, model })
+    >("mcp_gravitino_list_model_versions", { catalog, schema, model })
   },
 })
 
@@ -133,7 +149,7 @@ export const loadModelVersionTool = tool({
     return await callMCP<
       { catalog: string; schema: string; model: string; version: string },
       { catalog: string; schema: string; model: string; version: string; metadata: object }
-    >("load_model_version", { catalog, schema, model, version })
+    >("mcp_gravitino_load_model_version", { catalog, schema, model, version })
   },
 })
 
@@ -149,7 +165,7 @@ export const loadModelVersionByAliasTool = tool({
     return await callMCP<
       { catalog: string; schema: string; model: string; alias: string },
       { catalog: string; schema: string; model: string; version: string; metadata: object }
-    >("load_model_version_by_alias", { catalog, schema, model, alias })
+    >("mcp_gravitino_load_model_version_by_alias", { catalog, schema, model, alias })
   },
 })
 
@@ -157,7 +173,7 @@ export const metadataTypeToFullnameFormatsTool = tool({
   description: "Retrieve the metadata type to fullname formats mapping",
   inputSchema: z.object({}),
   execute: async (_input) => {
-    return await callMCP<{}, { mappings: Record<string, string> }>("metadata_type_to_fullname_formats", {})
+    return await callMCP<{}, { mappings: Record<string, string> }>("mcp_gravitino_metadata_type_to_fullname_formats", {})
   },
 })
 
@@ -171,7 +187,7 @@ export const listOfTopicsTool = tool({
     return await callMCP<
       { catalog: string; schema: string },
       { catalog: string; schema: string; topics: Array<{ name: string }> }
-    >("list_of_topics", { catalog, schema })
+    >("mcp_gravitino_list_of_topics", { catalog, schema })
   },
 })
 
@@ -186,7 +202,7 @@ export const loadTopicTool = tool({
     return await callMCP<
       { catalog: string; schema: string; topic: string },
       { catalog: string; schema: string; topic: string; metadata: object }
-    >("load_topic", { catalog, schema, topic })
+    >("mcp_gravitino_load_topic", { catalog, schema, topic })
   },
 })
 
@@ -200,7 +216,7 @@ export const listOfFilesetsTool = tool({
     return await callMCP<
       { catalog: string; schema: string },
       { catalog: string; schema: string; filesets: Array<{ name: string }> }
-    >("list_of_filesets", { catalog, schema })
+    >("mcp_gravitino_list_of_filesets", { catalog, schema })
   },
 })
 
@@ -215,7 +231,7 @@ export const loadFilesetTool = tool({
     return await callMCP<
       { catalog: string; schema: string; fileset: string },
       { catalog: string; schema: string; fileset: string; metadata: object }
-    >("load_fileset", { catalog, schema, fileset })
+    >("mcp_gravitino_load_fileset", { catalog, schema, fileset })
   },
 })
 
@@ -230,7 +246,7 @@ export const listFilesInFilesetTool = tool({
     return await callMCP<
       { catalog: string; schema: string; fileset: string },
       { catalog: string; schema: string; files: Array<string> }
-    >("list_files_in_fileset", { catalog, schema, fileset })
+    >("mcp_gravitino_list_files_in_fileset", { catalog, schema, fileset })
   },
 })
 
@@ -238,7 +254,7 @@ export const listOfJobsTool = tool({
   description: "Retrieve a list of jobs",
   inputSchema: z.object({}),
   execute: async (_input) => {
-    return await callMCP<{}, { jobs: Array<{ id: string; name: string }> }>("list_of_jobs", {})
+    return await callMCP<{}, { jobs: Array<{ id: string; name: string }> }>("mcp_gravitino_list_of_jobs", {})
   },
 })
 
@@ -248,7 +264,7 @@ export const getJobByIdTool = tool({
     job_id: z.string(),
   }),
   execute: async ({ job_id }) => {
-    return await callMCP<{ job_id: string }, { id: string; name: string; metadata: object }>("get_job_by_id", {
+    return await callMCP<{ job_id: string }, { id: string; name: string; metadata: object }>("mcp_gravitino_get_job_by_id", {
       job_id,
     })
   },
@@ -258,7 +274,7 @@ export const listOfJobTemplatesTool = tool({
   description: "Retrieve a list of job templates",
   inputSchema: z.object({}),
   execute: async (_input) => {
-    return await callMCP<{}, { templates: Array<{ name: string }> }>("list_of_job_templates", {})
+    return await callMCP<{}, { templates: Array<{ name: string }> }>("mcp_gravitino_list_of_job_templates", {})
   },
 })
 
@@ -268,7 +284,7 @@ export const getJobTemplateByNameTool = tool({
     template_name: z.string(),
   }),
   execute: async ({ template_name }) => {
-    return await callMCP<{ template_name: string }, { name: string; metadata: object }>("get_job_template_by_name", {
+    return await callMCP<{ template_name: string }, { name: string; metadata: object }>("mcp_gravitino_get_job_template_by_name", {
       template_name,
     })
   },
@@ -284,7 +300,7 @@ export const runJobTool = tool({
     return await callMCP<
       { job_id: string; parameters?: Record<string, unknown> },
       { job_id: string; status: string; result?: any }
-    >("run_job", { job_id, parameters })
+    >("mcp_gravitino_run_job", { job_id, parameters })
   },
 })
 
@@ -294,7 +310,7 @@ export const cancelJobTool = tool({
     job_id: z.string(),
   }),
   execute: async ({ job_id }) => {
-    return await callMCP<{ job_id: string }, { job_id: string; status: string }>("cancel_job", { job_id })
+    return await callMCP<{ job_id: string }, { job_id: string; status: string }>("mcp_gravitino_cancel_job", { job_id })
   },
 })
 
@@ -304,7 +320,7 @@ export const getTagByNameTool = tool({
     tag_name: z.string(),
   }),
   execute: async ({ tag_name }) => {
-    return await callMCP<{ tag_name: string }, { tag_name: string; metadata: object }>("get_tag_by_name", { tag_name })
+    return await callMCP<{ tag_name: string }, { tag_name: string; metadata: object }>("mcp_gravitino_get_tag_by_name", { tag_name })
   },
 })
 
@@ -312,7 +328,7 @@ export const listOfTagsTool = tool({
   description: "Retrieve a list of tags",
   inputSchema: z.object({}),
   execute: async (_input) => {
-    return await callMCP<{}, { tags: Array<{ name: string }> }>("list_of_tags", {})
+    return await callMCP<{}, { tags: Array<{ name: string }> }>("mcp_gravitino_list_of_tags", {})
   },
 })
 
@@ -323,7 +339,7 @@ export const listTagsForMetadataTool = tool({
   }),
   execute: async ({ metadata_id }) => {
     return await callMCP<{ metadata_id: string }, { metadata_id: string; tags: Array<string> }>(
-      "list_tags_for_metadata",
+      "mcp_gravitino_list_tags_for_metadata",
       { metadata_id },
     )
   },
@@ -336,7 +352,7 @@ export const listMetadataByTagTool = tool({
   }),
   execute: async ({ tag_name }) => {
     return await callMCP<{ tag_name: string }, { tag_name: string; metadata_items: Array<{ metadata_id: string }> }>(
-      "list_metadata_by_tag",
+      "mcp_gravitino_list_metadata_by_tag",
       { tag_name },
     )
   },
@@ -350,7 +366,7 @@ export const associateTagWithMetadataTool = tool({
   }),
   execute: async ({ metadata_id, tag_name }) => {
     return await callMCP<{ metadata_id: string; tag_name: string }, { success: boolean }>(
-      "associate_tag_with_metadata",
+      "mcp_gravitino_associate_tag_with_metadata",
       { metadata_id, tag_name },
     )
   },
@@ -364,7 +380,7 @@ export const disassociateTagFromMetadataTool = tool({
   }),
   execute: async ({ metadata_id, tag_name }) => {
     return await callMCP<{ metadata_id: string; tag_name: string }, { success: boolean }>(
-      "disassociate_tag_from_metadata",
+      "mcp_gravitino_disassociate_tag_from_metadata",
       { metadata_id, tag_name },
     )
   },
@@ -377,7 +393,7 @@ export const listStatisticsForMetadataTool = tool({
   }),
   execute: async ({ metadata_id }) => {
     return await callMCP<{ metadata_id: string }, { metadata_id: string; statistics: any }>(
-      "list_statistics_for_metadata",
+      "mcp_gravitino_list_statistics_for_metadata",
       { metadata_id },
     )
   },
@@ -393,7 +409,7 @@ export const listStatisticsForPartitionTool = tool({
     return await callMCP<
       { metadata_id: string; partition: string },
       { metadata_id: string; partition: string; statistics: any }
-    >("list_statistics_for_partition", { metadata_id, partition })
+    >("mcp_gravitino_list_statistics_for_partition", { metadata_id, partition })
   },
 })
 
@@ -401,7 +417,7 @@ export const getListOfPoliciesTool = tool({
   description: "Retrieve a list of policies in the system",
   inputSchema: z.object({}),
   execute: async (_input) => {
-    return await callMCP<{}, { policies: Array<{ name: string }> }>("get_list_of_policies", {})
+    return await callMCP<{}, { policies: Array<{ name: string }> }>("mcp_gravitino_get_list_of_policies", {})
   },
 })
 
@@ -411,7 +427,7 @@ export const getPolicyDetailInformationTool = tool({
     policy_name: z.string(),
   }),
   execute: async ({ policy_name }) => {
-    return await callMCP<{ policy_name: string }, { name: string; metadata: object }>("get_policy_detail_information", {
+    return await callMCP<{ policy_name: string }, { name: string; metadata: object }>("mcp_gravitino_get_policy_detail_information", {
       policy_name,
     })
   },
@@ -424,7 +440,7 @@ export const listPoliciesForMetadataTool = tool({
   }),
   execute: async ({ metadata_id }) => {
     return await callMCP<{ metadata_id: string }, { metadata_id: string; policies: Array<string> }>(
-      "list_policies_for_metadata",
+      "mcp_gravitino_list_policies_for_metadata",
       { metadata_id },
     )
   },
@@ -439,7 +455,7 @@ export const listMetadataByPolicyTool = tool({
     return await callMCP<
       { policy_name: string },
       { policy_name: string; metadata_items: Array<{ metadata_id: string }> }
-    >("list_metadata_by_policy", { policy_name })
+    >("mcp_gravitino_list_metadata_by_policy", { policy_name })
   },
 })
 
@@ -450,11 +466,12 @@ export const getPolicyForMetadataTool = tool({
   }),
   execute: async ({ metadata_id }) => {
     return await callMCP<{ metadata_id: string }, { metadata_id: string; policy: string | null }>(
-      "get_policy_for_metadata",
+      "mcp_gravitino_get_policy_for_metadata",
       { metadata_id },
     )
   },
 })
+
 
 // Xuất tất cả tools trong một object dễ dùng
 export const tools = {

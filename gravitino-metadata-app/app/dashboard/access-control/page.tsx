@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription, AlertDialogCancel, AlertDialogAction, } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Search, Plus, MoreVertical, Users, Shield, Key, Component, Trash2 } from "lucide-react"
+import { Search, Plus, MoreVertical, Users, Shield, Key, Component, Trash2, Edit } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { getGravitinoClient, User, Role, SecurableObject, Group, Privilege } from "@/lib/gravitino-client"
 import { set } from "date-fns"
@@ -23,11 +23,12 @@ export default function AccessControlPage() {
   const [isAddUserOpen, setAddUserOpen] = useState(false)
   const [isAddRoleOpen, setAddRoleOpen] = useState(false)
   const [isAddGroupOpen, setAddGroupOpen] = useState(false)
-  const [isChangeRoleOpen, setChangeRoleOpen] = useState(false)
-  const [isManagePermission, setManagePermission] = useState(false)
+  const [isChangeUserRoleOpen, setChangeUserRoleOpen] = useState(false)
+  const [isChangeGroupRoleOpen, setChangeGroupRoleOpen] = useState(false)
   const [isDeleteUserOpen, setDeleteUserOpen] = useState(false)
   const [isDeleteGroupOpen, setDeleteGroupOpen] = useState(false)
   const [isDeleteRoleOpen, setDeleteRoleOpen] = useState(false)
+  const [isGrantPermissionOpen, setGrantPermissionOpen] = useState(false)
 
   // State for users, roles, permissions
   const [users, setUsers] = useState<User[]>([])
@@ -56,6 +57,12 @@ export default function AccessControlPage() {
   const [revokeRoles, setRevokeRoles] = useState<string[]>([]);
   const [grantRoles, setGrantRoles] = useState<string[]>([]);
 
+  // Form state for manage permissions
+  const [grantPrivileges, setGrantPrivileges] = useState<Privilege[]>([]);
+  const [revokePrivileges, setRevokePrivileges] = useState<Privilege[]>([]);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const [selectedPermissionObject, setSelectedPermissionObject] = useState<SecurableObject | null>(null);
+
   // Form state for dialogs
   const [selectedUser, setSelectedUser] = useState<{ name: string; roles: string[] }>({ name: "", roles: [] })
   const [selectedGroup, setSelectedGroup] = useState<{ name: string; roles?: string[] }>({ name: "", roles: [] })
@@ -80,7 +87,28 @@ export default function AccessControlPage() {
   const [newOwnerType, setNewOwnerType] = useState<string>("")
   const [ownerSetResult, setOwnerSetResult] = useState<boolean>(false)
 
+  // Form state for grant permission
+  const [grantPermissionForm, setGrantPermissionForm] = useState<{
+    roleName: string;
+    objectType: string;
+    objectName: string;
+    privileges: Privilege[];
+  }>({
+    roleName: "",
+    objectType: "METALAKE",
+    objectName: "",
+    privileges: [{ name: "CREATE_CATALOG", condition: "ALLOW" }]
+  })
+
   const [userSearch, setUserSearch] = useState<string>("")
+
+  // Handle Enter key for forms
+  const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      action()
+    }
+  }
   const [groupSearch, setGroupSearch] = useState<string>("")
   const [roleSearch, setRoleSearch] = useState<string>("")
   const [permissionSearch, setPermissionSearch] = useState<string>("")
@@ -223,22 +251,17 @@ export default function AccessControlPage() {
   }
 
   // Change role handler
-  async function handleChangeRole(userName: string, grantRoles: string[], revokeRoles: string[]) {
+  async function handleChangeUserRole(userName: string, grantRoles: string[], revokeRoles: string[]) {
     if (!userName) return;
     try {
-      const currentUser = await gravitino.getUser(userName);
-      const rolesToRevoke = (currentUser.roles || []).filter(r => revokeRoles.includes(r));
-      const rolesToGrant = grantRoles.filter(r => !(currentUser.roles || []).includes(r));
-      await Promise.all([
-        rolesToRevoke.length ? gravitino.revokeRoleFromUser(userName, rolesToRevoke) : null,
-        rolesToGrant.length ? gravitino.grantRoleToUser(userName, rolesToGrant) : null
-      ]);
-      console.log(
-        `Updated roles for user "${userName}". Granted: [${rolesToGrant.join(', ')}], Revoked: [${rolesToRevoke.join(', ')}]`
-      );
-
+      if (grantRoles.length > 0) {
+        await gravitino.grantRoleToUser(userName, grantRoles)
+      }
+      if (revokeRoles.length > 0) {
+        await gravitino.revokeRoleFromUser(userName, revokeRoles)
+      }
       setSelectedUser({ name: "", roles: [] });
-      setChangeRoleOpen(false);
+      setChangeUserRoleOpen(false);
       setGrantRoles([]);
       setRevokeRoles([]);
       // Refresh users
@@ -246,7 +269,7 @@ export default function AccessControlPage() {
       const userObjs = await Promise.all(names?.map(name => gravitino.getUser(name)) || []);
       setUsers(userObjs);
     } catch (err) {
-      console.error("Failed to update roles:", err);
+      console.error("Failed to update user roles:", err);
     }
   }
 
@@ -274,6 +297,29 @@ export default function AccessControlPage() {
     const names = await gravitino.listGroups()
     const groupObjs = await Promise.all(names.map(name => gravitino.getGroup(name)))
     setGroups(groupObjs)
+  }
+
+  // Change group role handler
+  async function handleChangeGroupRole(groupName: string, grantRoles: string[], revokeRoles: string[]) {
+    if (!groupName) return;
+    try {
+      if (grantRoles.length > 0) {
+        await gravitino.grantRoleToGroup(groupName, grantRoles)
+      }
+      if (revokeRoles.length > 0) {
+        await gravitino.revokeRoleFromGroup(groupName, revokeRoles)
+      }
+      setSelectedGroup({ name: "", roles: [] });
+      setChangeGroupRoleOpen(false);
+      setGrantRoles([]);
+      setRevokeRoles([]);
+      // Refresh groups
+      const names = await gravitino.listGroups()
+      const groupObjs = await Promise.all(names.map(name => gravitino.getGroup(name)))
+      setGroups(groupObjs)
+    } catch (err) {
+      console.error("Failed to update group roles:", err);
+    }
   }
 
   // Delete group handler
@@ -328,47 +374,184 @@ export default function AccessControlPage() {
   }
 
   async function managerPermissionHandler(roleName: string, object: SecurableObject, grantPrivileges: Privilege[], revokePrivileges: Privilege[]) {
-  if (!roleName || !object) return;
-  try {
-    // Lấy role hiện tại
-    const currentRole = await gravitino.getRole(roleName);
-    const currentPrivileges = currentRole.securableObjects
-      ?.find(obj => obj.fullName === object.fullName)
-      ?.privileges || [];
+    if (!roleName || !object) return;
+    try {
+      // Lấy role hiện tại
+      const currentRole = await gravitino.getRole(roleName);
+      const currentPrivileges = currentRole.securableObjects
+        ?.find(obj => obj.fullName === object.fullName)
+        ?.privileges || [];
 
-    // Xác định quyền cần revoke / grant
-    const privilegesToRevoke = currentPrivileges.filter(p =>
-      revokePrivileges.some(rp => rp.name === p.name)
-    );
+      // Xác định quyền cần revoke / grant
+      const privilegesToRevoke = currentPrivileges.filter(p =>
+        revokePrivileges.some(rp => rp.name === p.name)
+      );
 
-    const privilegesToGrant = grantPrivileges.filter(
-      gp => !currentPrivileges.some(cp => cp.name === gp.name)
-    );
+      const privilegesToGrant = grantPrivileges.filter(
+        gp => !currentPrivileges.some(cp => cp.name === gp.name)
+      );
 
-    // Gọi API song song (chỉ nếu có quyền cần thay đổi)
-    await Promise.all([
-      privilegesToRevoke.length
-        ? gravitino.revokePrivilegeToRole(roleName, object, privilegesToRevoke)
-        : null,
-      privilegesToGrant.length
-        ? gravitino.grantPrivilegeToRole(roleName, object, privilegesToGrant)
-        : null
-    ]);
+      // Gọi API song song (chỉ nếu có quyền cần thay đổi)
+      await Promise.all([
+        privilegesToRevoke.length
+          ? gravitino.revokePrivilegeToRole(roleName, object, privilegesToRevoke)
+          : null,
+        privilegesToGrant.length
+          ? gravitino.grantPrivilegeToRole(roleName, object, privilegesToGrant)
+          : null
+      ]);
 
-    console.log(
-      `Updated privileges for role "${roleName}". Granted: [${privilegesToGrant.map(p => p.name).join(', ')}], Revoked: [${privilegesToRevoke.map(p => p.name).join(', ')}]`
-    );
-    setSelectedRole();
-    setGrantPrivileges([]);
-    setRevokePrivileges([]);
-    setShowPermissionModal(false);
-    // Refresh roles
-    const roles = await gravitino.listRoles();
-    const roleObjs = await Promise.all(roles.map(r => gravitino.getRole(r)));
-    setRoles(roleObjs);
+      console.log(
+        `Updated privileges for role "${roleName}". Granted: [${privilegesToGrant.map(p => p.name).join(', ')}], Revoked: [${privilegesToRevoke.map(p => p.name).join(', ')}]`
+      );
+      setSelectedRole({
+        name: "",
+        description: "",
+        resource: "",
+        resourceType: "METALAKE",
+        privileges: [
+          {
+            name: "CREATE_CATALOG",
+            condition: "ALLOW"
+          }
+        ]
+      });
+      setGrantPrivileges([]);
+      setRevokePrivileges([]);
+      setShowPermissionModal(false);
+      setSelectedPermissionObject(null);
+      // Refresh roles
+      const roles = await gravitino.listRoles();
+      const roleObjs = await Promise.all(roles.map(r => gravitino.getRole(r)));
+      setRoles(roleObjs);
 
-  } catch (err) {
-    console.error("Failed to manage permissions:", err);
+    } catch (err) {
+      console.error("Failed to manage permissions:", err);
+    }
+  }
+
+  // Delete role handler
+  async function handleDeleteRole(roleName: string) {
+    if (!roleName) return;
+    try {
+      await gravitino.deleteRole(roleName);
+      console.log(`Role "${roleName}" has been deleted.`);
+      setSelectedRole({
+        name: "",
+        description: "",
+        resource: "",
+        resourceType: "METALAKE",
+        privileges: [
+          {
+            name: "CREATE_CATALOG",
+            condition: "ALLOW"
+          }
+        ]
+      });
+      setDeleteRoleOpen(false);
+      setRoles(prev => prev.filter(r => r.name !== roleName));
+    } catch (err) {
+      console.error(`Failed to delete role "${roleName}":`, err);
+    }
+  }
+
+  // Helper function to get valid privileges for object type
+  function getValidPrivilegesForObjectType(objectType: string): string[] {
+    switch (objectType) {
+      case "METALAKE":
+        return ["CREATE_CATALOG", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "CATALOG":
+        return ["USE_CATALOG", "CREATE_SCHEMA", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "SCHEMA":
+        return ["USE_SCHEMA", "CREATE_TABLE", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "TABLE":
+        return ["MODIFY_TABLE", "SELECT_TABLE", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "COLUMN":
+        return ["SELECT_TABLE", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "FILESET":
+        return ["CREATE_FILESET", "WRITE_FILESET", "READ_FILESET", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "TOPIC":
+        return ["CREATE_TOPIC", "PRODUCE_TOPIC", "CONSUME_TOPIC", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "MODEL":
+        return ["MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "USER":
+        return ["MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "GROUP":
+        return ["MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      case "ROLE":
+        return ["MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+      default:
+        return ["MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"];
+    }
+  }
+
+  // Grant permission handler
+  async function handleGrantPermission() {
+    if (!grantPermissionForm.roleName || !grantPermissionForm.objectName || grantPermissionForm.privileges.length === 0) return;
+    
+    try {
+      // Filter privileges to only include valid ones for the object type
+      const validPrivileges = getValidPrivilegesForObjectType(grantPermissionForm.objectType);
+      const filteredPrivileges = grantPermissionForm.privileges.filter(priv => 
+        validPrivileges.includes(priv.name)
+      );
+      
+      if (filteredPrivileges.length === 0) {
+        console.error(`No valid privileges for object type ${grantPermissionForm.objectType}`);
+        return;
+      }
+      
+      const securableObject: SecurableObject = {
+        fullName: grantPermissionForm.objectName,
+        type: grantPermissionForm.objectType as SecurableObject["type"],
+        privileges: filteredPrivileges
+      };
+      
+      await gravitino.grantPrivilegeToRole(grantPermissionForm.roleName, securableObject, filteredPrivileges);
+      console.log(`Granted permissions to role "${grantPermissionForm.roleName}" for ${grantPermissionForm.objectType} "${grantPermissionForm.objectName}"`);
+      
+      setGrantPermissionOpen(false);
+      setGrantPermissionForm({
+        roleName: "",
+        objectType: "METALAKE",
+        objectName: "",
+        privileges: [{ name: "CREATE_CATALOG", condition: "ALLOW" }]
+      });
+      
+      // Refresh roles
+      const names = await gravitino.listRoles();
+      const roleObjs = await Promise.all(names.map(name => gravitino.getRole(name)));
+      setRoles(roleObjs);
+    } catch (err) {
+      console.error("Failed to grant permission:", err);
+    }
+  }
+
+  // Revoke permission handler
+  async function handleRevokePermission(permission: SecurableObject) {
+    if (!permission) return;
+    
+    try {
+      // Find the role that has this permission
+      const roleWithPermission = roles.find(role => 
+        role.securableObjects?.some(obj => obj.fullName === permission.fullName)
+      );
+      
+      if (!roleWithPermission) {
+        console.error("No role found with this permission");
+        return;
+      }
+      
+      await gravitino.revokePrivilegeToRole(roleWithPermission.name, permission, permission.privileges);
+      console.log(`Revoked permissions from role "${roleWithPermission.name}"`);
+      
+      // Refresh roles
+      const names = await gravitino.listRoles();
+      const roleObjs = await Promise.all(names.map(name => gravitino.getRole(name)));
+      setRoles(roleObjs);
+    } catch (err) {
+      console.error("Failed to revoke permission:", err);
+    }
   }
 
   return (
@@ -465,7 +648,13 @@ export default function AccessControlPage() {
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <Label htmlFor="name">Name</Label>
-                          <Input id="name" placeholder="John Doe" value={newUser.name} onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))} />
+                          <Input 
+                            id="name" 
+                            placeholder="John Doe" 
+                            value={newUser.name} 
+                            onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))}
+                            onKeyDown={e => handleKeyDown(e, handleCreateUser)}
+                          />
                           <Label>Assign Roles</Label>
                           {newUser.roles.map((role, idx) => (
                             <div key={idx} className="flex gap-2 items-center">
@@ -555,7 +744,7 @@ export default function AccessControlPage() {
                             <TableCell className="font-medium">{user.name}</TableCell>
                             <TableCell>
                               {user.roles?.map(role => (
-                                <Badge key={role} variant="secondary" className="capitalize">{role}</Badge>
+                                <Badge key={role} variant="secondary">{role}</Badge>
                               ))}
                             </TableCell>
                             <TableCell>
@@ -572,13 +761,17 @@ export default function AccessControlPage() {
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="outline">Actions</Button>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setSelectedUser({name: user.name, roles: user.roles || [] })}>
+                                  <DropdownMenuItem onClick={() => {setSelectedUser({name: user.name, roles: user.roles || [] }), setChangeUserRoleOpen(true)}}>
+                                    <Edit className="h-4 w-4 mr-2" />
                                     Change Role
                                   </DropdownMenuItem>
                                   <DropdownMenuItem className="text-destructive" onClick={() => {setSelectedUser({name: user.name, roles: user.roles || [] }), setDeleteUserOpen(true)}}>
+                                    <Trash2 className="h-4 w-4 mr-2" />
                                     Delete User
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -589,14 +782,14 @@ export default function AccessControlPage() {
                       </TableBody>
                     </Table>
 
-                    <Dialog open={!!selectedUser.name && isChangeRoleOpen}>
+                    <Dialog open={!!selectedUser.name && isChangeUserRoleOpen} onOpenChange={setChangeUserRoleOpen}>
                       {selectedUser.name && (
                         <DialogContent>
                           <DialogTitle>Change Roles for {selectedUser?.name}</DialogTitle>
                           <DialogDescription>
                             Revoke or grant roles for the user.
                           </DialogDescription>  
-                          <div className="space-y-6">
+                          <div className="space-y-6" onKeyDown={e => handleKeyDown(e, () => handleChangeUserRole(selectedUser.name, grantRoles, revokeRoles))}>
                             {/* Revoke Roles */}
                             <div className="space-y-2">
                               <Label>Revoke Roles</Label>
@@ -690,7 +883,7 @@ export default function AccessControlPage() {
                               Cancel
                             </Button>
                             <Button
-                              onClick={() => handleChangeRole(selectedUser.name, grantRoles, revokeRoles)}
+                              onClick={() => handleChangeUserRole(selectedUser.name, grantRoles, revokeRoles)}
                             >
                               Apply
                             </Button>
@@ -735,7 +928,7 @@ export default function AccessControlPage() {
                       <CardTitle>Users</CardTitle>
                       <CardDescription>Manage user groups and their roles</CardDescription>
                     </div>
-                    <Dialog open={isAddUserOpen} onOpenChange={setAddUserOpen}>
+                    <Dialog open={isAddGroupOpen} onOpenChange={setAddGroupOpen}>
                       <DialogTrigger asChild>
                         <Button className="gap-2">
                           <Plus className="h-4 w-4" />
@@ -749,10 +942,16 @@ export default function AccessControlPage() {
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                           <Label htmlFor="name">Name</Label>
-                          <Input id="name" placeholder="John Doe" value={newGroup.name} onChange={e => setNewGroup(u => ({ ...u, name: e.target.value }))} />
+                          <Input 
+                            id="name" 
+                            placeholder="Group Name" 
+                            value={newGroup.name} 
+                            onChange={e => setNewGroup(u => ({ ...u, name: e.target.value }))}
+                            onKeyDown={e => handleKeyDown(e, handleCreateGroup)}
+                          />
                         </div>
                         <DialogFooter>
-                          <Button variant="outline" onClick={() => setAddUserOpen(false)}>
+                          <Button variant="outline" onClick={() => setAddGroupOpen(false)}>
                             Cancel
                           </Button>
                           <Button onClick={handleCreateGroup}>Create Group</Button>
@@ -779,6 +978,7 @@ export default function AccessControlPage() {
                           <TableHead>Roles</TableHead>
                           <TableHead>Created At</TableHead>
                           <TableHead>Updated At</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -787,7 +987,7 @@ export default function AccessControlPage() {
                             <TableCell className="font-medium">{group.name}</TableCell>
                             <TableCell>
                               {group.roles?.map(role => (
-                                <Badge key={role} variant="secondary" className="capitalize">{role}</Badge>
+                                <Badge key={role} variant="secondary">{role}</Badge>
                               ))}
                             </TableCell>
                             <TableCell>
@@ -800,18 +1000,38 @@ export default function AccessControlPage() {
                                 ? new Date(group.audit.lastModifiedTime).toLocaleString()
                                 : "--"}
                             </TableCell>
+
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => {setSelectedGroup({name: group.name, roles: group.roles || [] }), setChangeGroupRoleOpen(true)}}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Change Role
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive" onClick={() => {setSelectedGroup({name: group.name, roles: group.roles || [] }), setDeleteGroupOpen(true)}}>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Group
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
-                    <Dialog open={!!selectedUser.name && isChangeRoleOpen}>
-                      {selectedUser.name && (
+                    <Dialog open={!!selectedGroup.name && isChangeGroupRoleOpen} onOpenChange={setChangeGroupRoleOpen}>
+                      {selectedGroup.name && (
                         <DialogContent>
-                          <DialogTitle>Change Roles for {selectedUser?.name}</DialogTitle>
+                          <DialogTitle>Change Roles for {selectedGroup?.name}</DialogTitle>
                           <DialogDescription>
-                            Revoke or grant roles for the user.
+                            Revoke or grant roles for the group.
                           </DialogDescription>  
-                          <div className="space-y-6">
+                          <div className="space-y-6" onKeyDown={e => handleKeyDown(e, () => handleChangeGroupRole(selectedGroup.name, grantRoles, revokeRoles))}>
                             {/* Revoke Roles */}
                             <div className="space-y-2">
                               <Label>Revoke Roles</Label>
@@ -827,7 +1047,7 @@ export default function AccessControlPage() {
                                       <SelectValue placeholder="Select role to revoke" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {selectedUser.roles?.map(role => (
+                                      {selectedGroup.roles?.map(role => (
                                         <SelectItem key={role} value={role}>
                                           {role}
                                         </SelectItem>
@@ -848,7 +1068,7 @@ export default function AccessControlPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setRevokeRoles(r => [...r, selectedUser.roles?.[0] || ""])}
+                                onClick={() => setRevokeRoles(r => [...r, selectedGroup.roles?.[0] || ""])}
                               >
                                 + Add Role to revoke
                               </Button>
@@ -870,7 +1090,7 @@ export default function AccessControlPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                       {roles
-                                        .filter(r => !selectedUser.roles?.includes(r.name))
+                                        .filter(r => !selectedGroup.roles?.includes(r.name))
                                         .map(r => (
                                           <SelectItem key={r.name} value={r.name}>
                                             {r.name}
@@ -893,7 +1113,7 @@ export default function AccessControlPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() =>
-                                  setGrantRoles(r => [...r, roles.find(r => !selectedUser.roles?.includes(r.name))?.name || ""])
+                                  setGrantRoles(r => [...r, roles.find(r => !selectedGroup.roles?.includes(r.name))?.name || ""])
                                 }
                               >
                                 + Add Role to grant
@@ -901,11 +1121,11 @@ export default function AccessControlPage() {
                             </div>
                           </div>
                           <DialogFooter>
-                            <Button variant="outline" onClick={() => setSelectedUser({ name: "", roles: [] })}>
+                            <Button variant="outline" onClick={() => setSelectedGroup({ name: "", roles: [] })}>
                               Cancel
                             </Button>
                             <Button
-                              onClick={() => handleChangeRole(selectedUser.name, grantRoles, revokeRoles)}
+                              onClick={() => handleChangeGroupRole(selectedGroup.name, grantRoles, revokeRoles)}
                             >
                               Apply
                             </Button>
@@ -914,13 +1134,13 @@ export default function AccessControlPage() {
                       )} 
                     </Dialog>
 
-                    <AlertDialog open={!!selectedUser.name && isDeleteUserOpen} onOpenChange={() => {}}>
-                      {selectedUser.name && (
+                    <AlertDialog open={!!selectedGroup.name && isDeleteGroupOpen} onOpenChange={() => {}}>
+                      {selectedGroup.name && (
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete user “{selectedUser.name}”?</AlertDialogTitle>
+                            <AlertDialogTitle>Delete user “{selectedGroup.name}”?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. The user will be permanently removed from the system.
+                              This action cannot be undone. The group will be permanently removed from the system.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
 
@@ -928,7 +1148,7 @@ export default function AccessControlPage() {
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-red-600 hover:bg-red-700 text-white"
-                              onClick={() => handleDeleteUser(selectedUser.name)}
+                              onClick={() => handleDeleteGroup(selectedGroup.name)}
                             >
                               Delete
                             </AlertDialogAction>
@@ -968,18 +1188,21 @@ export default function AccessControlPage() {
                             placeholder="Role name"
                             value={newRole.name}
                             onChange={e => setNewRole(r => ({ ...r, name: e.target.value }))}
+                            onKeyDown={e => handleKeyDown(e, handleCreateRole)}
                           />
                           <Label>Description</Label>
                           <Input
                             placeholder="Description"
                             value={newRole.description}
                             onChange={e => setNewRole(r => ({ ...r, description: e.target.value }))}
+                            onKeyDown={e => handleKeyDown(e, handleCreateRole)}
                           />
                           <Label>Resource</Label>
                           <Input
                             placeholder="Object Name (e.g. catalog.schema.table)"
                             value={newRole.resource}
                             onChange={e => setNewRole(r => ({ ...r, resource: e.target.value }))}
+                            onKeyDown={e => handleKeyDown(e, handleCreateRole)}
                           />
                           <Label>Object Type</Label>
                           <Select
@@ -1087,7 +1310,7 @@ export default function AccessControlPage() {
                                   <Shield className="h-5 w-5 text-primary" />
                                 </div>
                                 <div>
-                                  <CardTitle className="text-lg capitalize">{role.name}</CardTitle>
+                                  <CardTitle className="text-lg">{role.name}</CardTitle>
                                   <CardDescription className="text-xs">{role.properties?.description}</CardDescription>
                                 </div>
                               </div>
@@ -1098,8 +1321,40 @@ export default function AccessControlPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>Manage Permissions</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-destructive">Delete Role</DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setSelectedRole({
+                                        name: role.name,
+                                        description: role.properties?.description || "",
+                                        resource: role.securableObjects?.[0]?.fullName || "",
+                                        resourceType: role.securableObjects?.[0]?.type || "METALAKE",
+                                        privileges: role.securableObjects?.[0]?.privileges || []
+                                      });
+                                      setSelectedPermissionObject(role.securableObjects?.[0] || null);
+                                      setGrantPrivileges([]);
+                                      setRevokePrivileges([]);
+                                      setShowPermissionModal(true);
+                                    }}
+                                  >
+                                    <Key className="h-4 w-4 mr-2" />
+                                    Manage Permissions
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => {
+                                      setSelectedRole({
+                                        name: role.name,
+                                        description: role.properties?.description || "",
+                                        resource: role.securableObjects?.[0]?.fullName || "",
+                                        resourceType: role.securableObjects?.[0]?.type || "METALAKE",
+                                        privileges: role.securableObjects?.[0]?.privileges || []
+                                      });
+                                      setDeleteRoleOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Role
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -1127,6 +1382,200 @@ export default function AccessControlPage() {
               </Card>
             </TabsContent>
 
+            {/* Manage Permission Dialog */}
+            <Dialog open={showPermissionModal} onOpenChange={setShowPermissionModal}>
+              <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                  <DialogTitle>Manage Permissions for {selectedRole.name}</DialogTitle>
+                  <DialogDescription>
+                    Grant or revoke privileges for the selected role and object.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                {selectedPermissionObject && (
+                  <div className="space-y-6" onKeyDown={e => handleKeyDown(e, () => {
+                    if (selectedRole.name && selectedPermissionObject) {
+                      managerPermissionHandler(selectedRole.name, selectedPermissionObject, grantPrivileges, revokePrivileges);
+                    }
+                  })}>
+                    {/* Object Information */}
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">Object Information</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Name:</span> {selectedPermissionObject.fullName}
+                        </div>
+                        <div>
+                          <span className="font-medium">Type:</span> {selectedPermissionObject.type.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Current Privileges */}
+                    <div className="space-y-2">
+                      <Label>Current Privileges</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPermissionObject.privileges?.map((priv, idx) => (
+                          <Badge key={idx} variant="secondary">
+                            {priv.name} ({priv.condition})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Grant Privileges */}
+                    <div className="space-y-2">
+                      <Label>Grant Privileges</Label>
+                      {grantPrivileges.map((priv, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <Select
+                            value={priv.name}
+                            onValueChange={val =>
+                              setGrantPrivileges(prev => prev.map((p, i) => 
+                                i === idx ? { ...p, name: val as Privilege["name"] } : p
+                              ))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select privilege" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {["CREATE_CATALOG", "USE_CATALOG", "CREATE_SCHEMA", "USE_SCHEMA", "CREATE_TABLE", "MODIFY_TABLE", "SELECT_TABLE", "CREATE_FILESET", "WRITE_FILESET", "READ_FILESET", "CREATE_TOPIC", "PRODUCE_TOPIC", "CONSUME_TOPIC", "MANAGE_USERS", "MANAGE_GROUPS", "CREATE_ROLE", "MANAGE_GRANTS"].map(privilege => (
+                                <SelectItem key={privilege} value={privilege}>
+                                  {privilege}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={priv.condition}
+                            onValueChange={val =>
+                              setGrantPrivileges(prev => prev.map((p, i) => 
+                                i === idx ? { ...p, condition: val as "ALLOW" | "DENY" } : p
+                              ))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Condition" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ALLOW">ALLOW</SelectItem>
+                              <SelectItem value="DENY">DENY</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setGrantPrivileges(prev => prev.filter((_, i) => i !== idx))
+                            }
+                          >
+                            -
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setGrantPrivileges(prev => [...prev, { name: "CREATE_CATALOG", condition: "ALLOW" }])
+                        }
+                      >
+                        + Add Privilege to Grant
+                      </Button>
+                    </div>
+
+                    {/* Revoke Privileges */}
+                    <div className="space-y-2">
+                      <Label>Revoke Privileges</Label>
+                      {revokePrivileges.map((priv, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <Select
+                            value={priv.name}
+                            onValueChange={val =>
+                              setRevokePrivileges(prev => prev.map((p, i) => 
+                                i === idx ? { ...p, name: val as Privilege["name"] } : p
+                              ))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select privilege" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {selectedPermissionObject.privileges?.map(privilege => (
+                                <SelectItem key={privilege.name} value={privilege.name}>
+                                  {privilege.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setRevokePrivileges(prev => prev.filter((_, i) => i !== idx))
+                            }
+                          >
+                            -
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const firstCurrentPriv = selectedPermissionObject.privileges?.[0];
+                          if (firstCurrentPriv) {
+                            setRevokePrivileges(prev => [...prev, { name: firstCurrentPriv.name, condition: "ALLOW" }]);
+                          }
+                        }}
+                      >
+                        + Add Privilege to Revoke
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowPermissionModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (selectedRole.name && selectedPermissionObject) {
+                        managerPermissionHandler(selectedRole.name, selectedPermissionObject, grantPrivileges, revokePrivileges);
+                      }
+                    }}
+                  >
+                    Apply Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Delete Role Dialog */}
+            <AlertDialog open={!!selectedRole.name && isDeleteRoleOpen} onOpenChange={() => {}}>
+              {selectedRole.name && (
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete role "{selectedRole.name}"?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. The role will be permanently removed from the system.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      onClick={() => handleDeleteRole(selectedRole.name)}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              )}
+            </AlertDialog>
+
             {/* Permissions Tab */}
             <TabsContent value="permissions" className="space-y-4">
               <Card>
@@ -1136,10 +1585,139 @@ export default function AccessControlPage() {
                       <CardTitle>Permissions</CardTitle>
                       <CardDescription>Resource-level access control</CardDescription>
                     </div>
-                    <Button className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Grant Permission
-                    </Button>
+                    <Dialog open={isGrantPermissionOpen} onOpenChange={setGrantPermissionOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="gap-2">
+                          <Plus className="h-4 w-4" />
+                          Grant Permission
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Grant Permission</DialogTitle>
+                          <DialogDescription>Grant permissions to a role for a specific object</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <Label>Role</Label>
+                          <Select
+                            value={grantPermissionForm.roleName}
+                            onValueChange={val => setGrantPermissionForm(f => ({ ...f, roleName: val }))}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.map(role => (
+                                <SelectItem key={role.name} value={role.name}>
+                                  {role.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          <Label>Object Type</Label>
+                          <Select
+                            value={grantPermissionForm.objectType}
+                            onValueChange={val => {
+                              const validPrivileges = getValidPrivilegesForObjectType(val);
+                              setGrantPermissionForm(f => ({ 
+                                ...f, 
+                                objectType: val,
+                                privileges: validPrivileges.length > 0 ? [{ name: validPrivileges[0] as Privilege["name"], condition: "ALLOW" }] : []
+                              }));
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select object type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {["METALAKE", "CATALOG", "SCHEMA", "TABLE", "COLUMN", "FILESET", "TOPIC", "MODEL", "USER", "GROUP", "ROLE"].map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          <Label>Object Name</Label>
+                          <Input
+                            placeholder="Object full name (e.g. catalog.schema.table)"
+                            value={grantPermissionForm.objectName}
+                            onChange={e => setGrantPermissionForm(f => ({ ...f, objectName: e.target.value }))}
+                            onKeyDown={e => handleKeyDown(e, handleGrantPermission)}
+                          />
+                          
+                          <Label>Privileges</Label>
+                          {grantPermissionForm.privileges.map((priv, idx) => (
+                            <div key={idx} className="flex gap-2 items-center">
+                              <Select
+                                value={priv.name}
+                                onValueChange={val =>
+                                  setGrantPermissionForm(f => ({
+                                    ...f,
+                                    privileges: f.privileges.map((p, i) => i === idx ? { ...p, name: val as Privilege["name"] } : p)
+                                  }))
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Privilege" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {getValidPrivilegesForObjectType(grantPermissionForm.objectType).map(privilege => (
+                                    <SelectItem key={privilege} value={privilege}>{privilege}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select
+                                value={priv.condition}
+                                onValueChange={val =>
+                                  setGrantPermissionForm(f => ({
+                                    ...f,
+                                    privileges: f.privileges.map((p, i) => i === idx ? { ...p, condition: val as "ALLOW" | "DENY" } : p)
+                                  }))
+                                }
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Condition" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ALLOW">ALLOW</SelectItem>
+                                  <SelectItem value="DENY">DENY</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  setGrantPermissionForm(f => ({
+                                    ...f,
+                                    privileges: f.privileges.filter((_, i) => i !== idx)
+                                  }))
+                                }
+                              >-</Button>
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const validPrivileges = getValidPrivilegesForObjectType(grantPermissionForm.objectType);
+                              const firstValidPrivilege = validPrivileges[0];
+                              if (firstValidPrivilege) {
+                                setGrantPermissionForm(f => ({
+                                  ...f,
+                                  privileges: [...f.privileges, { name: firstValidPrivilege as Privilege["name"], condition: "ALLOW" }]
+                                }));
+                              }
+                            }}
+                          >+ Add Privilege</Button>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setGrantPermissionOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleGrantPermission}>Grant Permission</Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -1169,11 +1747,11 @@ export default function AccessControlPage() {
                           <TableRow key={permission.fullName + idx}>
                             <TableCell className="font-medium">{permission.fullName}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{permission.type}</Badge>
+                              <Badge variant="outline">{permission.type.toUpperCase()}</Badge>
                             </TableCell>
                             <TableCell>
                               {roles.filter(role => role.securableObjects?.some(obj => obj.fullName === permission.fullName)).map(role => (
-                                <Badge key={role.name} variant="secondary" className="capitalize">{role.name}</Badge>
+                                <Badge key={role.name} variant="secondary">{role.name}</Badge>
                               ))}
                             </TableCell>
                             <TableCell>
@@ -1198,8 +1776,13 @@ export default function AccessControlPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>Edit Permission</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-destructive">Revoke</DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => handleRevokePermission(permission)}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Revoke
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -1246,6 +1829,7 @@ export default function AccessControlPage() {
                           placeholder="object full name"
                           value={selectedName}
                           onChange={e => setSelectedName(e.target.value)}
+                          onKeyDown={e => handleKeyDown(e, handleGetOwner)}
                         />
                       </div>
                       <Button onClick={handleGetOwner}>Get Owner</Button>
@@ -1301,6 +1885,7 @@ export default function AccessControlPage() {
                           placeholder="object full name"
                           value={objectName}
                           onChange={e => setObjectName(e.target.value)}
+                          onKeyDown={e => handleKeyDown(e, handleSetOwner)}
                         />
                       </div>
                       <div className="space-y-4">

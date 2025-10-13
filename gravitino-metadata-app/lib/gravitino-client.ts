@@ -107,16 +107,31 @@ export interface Distribution {
 
 export interface Tag {
   name: string
-  description?: string
+  comment?: string
   properties?: Record<string, string>
 }
 
 export interface Statistic {
   objectType: string;
   objectName: string;
+  name?: string;
+  value?: string;
   reserved?: string;
   modified?: string;
   audit?: { creator: string; createTime: string; lastModifier?: string; lastModifiedTime?: string };
+}
+
+export interface PartitionStatistic {
+  objectType: string;
+  objectName: string;
+  partitionName: string;
+  statistics: Array<{
+    name?: string;
+    value?: string;
+    reserved?: string;
+    modified?: string;
+    audit?: { creator: string; createTime: string; lastModifier?: string; lastModifiedTime?: string };
+  }>
 }
 
 export interface PolicyContent {
@@ -133,11 +148,24 @@ export interface Policy {
   content: PolicyContent;
 }
 
-export interface PolicyUpdate {
-  type: 'rename' | 'updateComment' | 'updateContent' | 'enable' | 'disable';
+export interface TagUpdate {
+  "@type": "rename" | "updateComment" | "setProperty" | "removeProperty";
   newName?: string;
   newComment?: string;
+  property?: string;
+  value?: string;
+}
+
+export interface PolicyUpdate {
+  "@type": "rename" | "updateComment" | "updateContent";
+  newName?: string;
+  newComment?: string;
+  policyType?: string;
   newContent?: PolicyContent;
+}
+
+export interface StatisticsUpdate {
+  updates: Record<string, any>;
 }
 
 export interface JobTemplate {
@@ -145,15 +173,15 @@ export interface JobTemplate {
   jobType: 'shell' | 'spark';
   comment?: string;
   executable: string;
-  arguments?: string[];
-  environments?: Record<string, string>;
-  customFields?: Record<string, string>;
-  scripts?: string[];       // only for shell
+  arguments?: string[];     // Can contain parameter placeholders like "{{arg1}}"
+  environments?: Record<string, string>; // Values can contain parameter placeholders like "{{value1}}"
+  customFields?: Record<string, string>; // Values can contain parameter placeholders like "{{value1}}"
+  scripts?: string[];       // only for shell, can contain parameter placeholders
   className?: string;       // only for spark
   jars?: string[];          // only for spark
   files?: string[];         // only for spark
   archives?: string[];      // only for spark
-  configs?: Record<string, string>; // only for spark
+  configs?: Record<string, string>; // only for spark, values can contain parameter placeholders
 }
 
 export interface Job {
@@ -163,6 +191,90 @@ export interface Job {
   startTime?: string;
   endTime?: string;
   details?: Record<string, any>;
+  parameters?: Record<string, any>; // Runtime parameter values to substitute in template
+}
+
+// Utility functions for parameter handling
+export function extractParametersFromTemplate(template: JobTemplate): string[] {
+  const parameters = new Set<string>();
+  
+  // Extract from arguments
+  template.arguments?.forEach(arg => {
+    const matches = arg.match(/\{\{([^}]+)\}\}/g);
+    if (matches) {
+      matches.forEach(match => {
+        parameters.add(match.slice(2, -2)); // Remove {{ and }}
+      });
+    }
+  });
+  
+  // Extract from environments
+  Object.values(template.environments || {}).forEach(value => {
+    const matches = value.match(/\{\{([^}]+)\}\}/g);
+    if (matches) {
+      matches.forEach(match => {
+        parameters.add(match.slice(2, -2));
+      });
+    }
+  });
+  
+  // Extract from customFields
+  Object.values(template.customFields || {}).forEach(value => {
+    const matches = value.match(/\{\{([^}]+)\}\}/g);
+    if (matches) {
+      matches.forEach(match => {
+        parameters.add(match.slice(2, -2));
+      });
+    }
+  });
+  
+  // Extract from scripts
+  template.scripts?.forEach(script => {
+    const matches = script.match(/\{\{([^}]+)\}\}/g);
+    if (matches) {
+      matches.forEach(match => {
+        parameters.add(match.slice(2, -2));
+      });
+    }
+  });
+  
+  // Extract from configs (for Spark jobs)
+  Object.values(template.configs || {}).forEach(value => {
+    const matches = value.match(/\{\{([^}]+)\}\}/g);
+    if (matches) {
+      matches.forEach(match => {
+        parameters.add(match.slice(2, -2));
+      });
+    }
+  });
+  
+  return Array.from(parameters);
+}
+
+export function substituteParameters(template: JobTemplate, parameters: Record<string, any>): JobTemplate {
+  const substitute = (value: string): string => {
+    return value.replace(/\{\{([^}]+)\}\}/g, (match, paramName) => {
+      return parameters[paramName] || match; // Keep original if parameter not found
+    });
+  };
+  
+  return {
+    ...template,
+    arguments: template.arguments?.map(arg => substitute(arg)),
+    environments: template.environments ? 
+      Object.fromEntries(
+        Object.entries(template.environments).map(([key, value]) => [key, substitute(value)])
+      ) : undefined,
+    customFields: template.customFields ? 
+      Object.fromEntries(
+        Object.entries(template.customFields).map(([key, value]) => [key, substitute(value)])
+      ) : undefined,
+    scripts: template.scripts?.map(script => substitute(script)),
+    configs: template.configs ? 
+      Object.fromEntries(
+        Object.entries(template.configs).map(([key, value]) => [key, substitute(value)])
+      ) : undefined,
+  };
 }
 
 export interface User {
@@ -212,8 +324,8 @@ export interface NameListResponse extends BaseResponse {
 
 export interface ObjectResponse extends BaseResponse {
   metadataObjects: Array<{
-    objectType: string;
-    objectName: string;
+    type?: string;         // current field name
+    fullName?: string;     // current field name
   }>;
 }
 
@@ -504,12 +616,12 @@ export class GravitinoClient {
     return response.tag
   }
 
-  async updateTag(tagName: string, updates: Partial<Tag>): Promise<Tag> {
+  async updateTag(tagName: string, updates: TagUpdate[]): Promise<Tag> {
     const response = await this.request<TagResponse>(
       `/metalakes/${this.metalake}/tags/${tagName}`,
       {
         method: "PUT",
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ updates }),
       }
     )
     return response.tag
@@ -553,8 +665,8 @@ export class GravitinoClient {
       `/metalakes/${this.metalake}/tags/${tagName}/objects`
     )
     return response.metadataObjects.map(object => ({
-      objectType: object.objectType,
-      objectName: object.objectName,
+      objectType: (object.type) as string,
+      objectName: (object.fullName) as string,
     }))
   }
 
@@ -571,6 +683,50 @@ export class GravitinoClient {
       `/metalakes/${this.metalake}/objects/${objectType}/${objectName}/statistics/partitions`
     )
     return response.partitionStatistics
+  }
+
+  async updateStatistics(objectType: string, objectName: string, updates: Record<string, any>): Promise<boolean> {
+    const response = await this.request<BaseResponse>(
+      `/metalakes/${this.metalake}/objects/${objectType}/${objectName}/statistics`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ updates }),
+      }
+    )
+    return response.code === 0
+  }
+
+  async updatePartitionStatistics(objectType: string, objectName: string, partitionName: string, updates: Record<string, any>): Promise<boolean> {
+    const response = await this.request<BaseResponse>(
+      `/metalakes/${this.metalake}/objects/${objectType}/${objectName}/statistics/partitions/${partitionName}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ updates }),
+      }
+    )
+    return response.code === 0
+  }
+
+  async dropStatistics(objectType: string, objectName: string, statisticNames: string[]): Promise<boolean> {
+    const response = await this.request<BaseResponse>(
+      `/metalakes/${this.metalake}/objects/${objectType}/${objectName}/statistics`,
+      {
+        method: "POST",
+        body: JSON.stringify({ names: statisticNames }),
+      }
+    )
+    return response.code === 0
+  }
+
+  async dropPartitionStatistics(objectType: string, objectName: string, drops: Array<{ partitionName: string; statisticNames: string[] }>): Promise<boolean> {
+    const response = await this.request<BaseResponse>(
+      `/metalakes/${this.metalake}/objects/${objectType}/${objectName}/statistics/partitions`,
+      {
+        method: "POST",
+        body: JSON.stringify({ drops: drops }),
+      }
+    )
+    return response.code === 0
   }
 
   // --- Policies ---
@@ -600,12 +756,12 @@ export class GravitinoClient {
     return response.policy;
   }
 
-  async updatePolicy(policyName: string, changes: PolicyUpdate[]): Promise<Policy> {
+  async updatePolicy(policyName: string, updates: PolicyUpdate[]): Promise<Policy> {
     const response = await this.request<PolicyResponse>(
       `/metalakes/${this.metalake}/policies/${policyName}`,
       {
-        method: "PATCH",
-        body: JSON.stringify({ changes }),
+        method: "PUT",
+        body: JSON.stringify({ updates }),
       }
     );
     return response.policy;
@@ -613,7 +769,7 @@ export class GravitinoClient {
 
   async enablePolicy(policyName: string, enabled: boolean) {
     const response = await this.request<BaseResponse>(
-      `/metalakes/${this.metalake}/policies/${policyName}/status`,
+      `/metalakes/${this.metalake}/policies/${policyName}`,
       {
         method: "PATCH",
         body: JSON.stringify({ enable: enabled }),
@@ -662,8 +818,8 @@ export class GravitinoClient {
       `/metalakes/${metalake}/policies/${policyName}/objects`
     );
     return response.metadataObjects.map(object => ({
-      objectType: object.objectType,
-      objectName: object.objectName,
+      objectType: (object.type) as string,
+      objectName: (object.fullName) as string,
     }));
   }
 
